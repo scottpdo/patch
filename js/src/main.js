@@ -10,12 +10,11 @@ class MainComponent extends React.Component {
 
         this.state = {
             u0: [], u1: [],
-            v0: u => Math.sin(2 * Math.PI * u),
-            v1: u => 2 * u - 1,
-            // v1: u => 8 * (u - 0.5) * (u - 0.5) - 1,
+            v0: u => Math.cos(8 * Math.PI * u),
+            v1: u => Math.sin(2 * Math.PI * u),
             canvas: null,
             bound: 0, minX: 0, minY: 0,
-            minZ: -1, maxZ: 1,
+            minZ: Infinity, maxZ: -Infinity,
         };
     }
 
@@ -29,13 +28,24 @@ class MainComponent extends React.Component {
     }
 
     // u-v space to screen space
-    transform(x, y, z) {
+    transform(pt) {
 
-        x = this.state.minX + x * this.state.bound;
-        y = this.state.minY + y * this.state.bound;
-        z = z;
+        let bound = this.state.bound,
+            { minX, minY, minZ, maxZ } = {
+                minX: this.state.minX,
+                minY: this.state.minY,
+                minZ: this.state.minZ,
+                maxZ: this.state.maxZ
+            };
 
-        return { x, y, z };
+        pt.x = minX + pt.x * bound;
+        pt.y = minY + pt.y * bound;
+        pt.z = (pt.z - minZ) / (maxZ - minZ);
+
+        // z = 0 to 255
+        pt.z = Math.round(255 * pt.z);
+
+        return { x: pt.x, y: pt.y, z: pt.z };
     }
 
     draw() {
@@ -45,23 +55,39 @@ class MainComponent extends React.Component {
             width = canvas.width,
             height = canvas.height;
 
+        let minZ = this.state.minZ,
+            maxZ = this.state.maxZ;
+
         // black bg
         context.fillStyle = 'rgba(255, 255, 0, 255)';
         context.fillRect(0, 0, width, height);
 
-        let d = 0.005,
-            r = 2;
+        let d = 2 / this.state.bound,
+            r = 1.5;
 
+        let pts = [];
+
+        // first pass: calculate upper/lower z bounds
         for (let u = 0; u < 1; u += d) {
 
             for (let v = 0; v < 1; v += d) {
 
                 let pt = this.P(u, v);
-                pt = this.transform(pt.x, pt.y, pt.z);
-                pt.z += 1; pt.z /= 2; // coerce to [0, 1]
+                if (pt.z < minZ) minZ = pt.z;
+                if (pt.z > maxZ) maxZ = pt.z;
 
-                let zVal = Math.round(255 * pt.z);
-                let color = 'rgb(' + zVal + ',' + zVal + ',' + zVal + ')';
+                pts.push(pt);
+            }
+        }
+
+        // 2nd pass: draw
+        this.setState({ minZ, maxZ }, () => {
+
+            pts.forEach((pt, i) => {
+
+                pt = this.transform(pt);
+
+                let color = 'rgb(' + pt.z + ',' + pt.z + ',' + pt.z + ')';
 
                 context.fillStyle = color;
 
@@ -69,8 +95,11 @@ class MainComponent extends React.Component {
                 context.arc(pt.x, pt.y, r, 0, 2 * Math.PI);
                 context.fill();
                 context.closePath();
-            }
-        }
+            });
+
+            // clear pts
+            pts = [];
+        });
     }
 
     componentDidMount() {
@@ -93,7 +122,7 @@ class MainComponent extends React.Component {
         update();
         window.addEventListener(
             'resize',
-            _.debounce(update, 500)
+            _.debounce(update, 250)
         );
     }
 

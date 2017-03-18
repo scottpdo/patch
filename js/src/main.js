@@ -15,8 +15,20 @@ class MainComponent extends React.Component {
                 i: 0,
                 u0: [],
                 u1: [],
-                v0: u => Math.cos(this.state.p * Math.PI * u),
-                v1: u => Math.sin(2 * Math.PI * u)
+                v0: (u) => {
+                    return {
+                        x: u,
+                        y: 0,
+                        z: Math.cos(this.state.p * Math.PI * u)
+                    };
+                },
+                v1: (u) => {
+                    return {
+                        x: u,
+                        y: 1,
+                        z: Math.sin(2 * Math.PI * u)
+                    };
+                }
             }
         };
     }

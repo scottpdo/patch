@@ -17,9 +17,12 @@ class CanvasComponent extends React.Component {
 
     P(u, v) {
 
-        let x = u,
-            y = v,
-            z = this.props.curves.v0(u) * (1 - v) + this.props.curves.v1(u) * v; // lerp
+        let v0 = this.props.curves.v0(u),
+            v1 = this.props.curves.v1(u);
+
+        let x = v0.x * (1 - v) + v1.x * v,
+            y = v0.y * (1 - v) + v1.y * v,
+            z = v0.z * (1 - v) + v1.z * v; // lerp
 
         return { x, y, z };
     }
@@ -61,7 +64,7 @@ class CanvasComponent extends React.Component {
         context.fillStyle = 'rgba(255, 255, 0, 255)';
         context.fillRect(0, 0, width, height);
 
-        let d = 2 / this.state.bound,
+        let d = 1.5 / this.state.bound,
             r = 1.5;
 
         let pts = [];
@@ -87,6 +90,7 @@ class CanvasComponent extends React.Component {
                 pt = this.transform(pt);
 
                 let color = 'rgb(' + pt.z + ',' + pt.z + ',' + pt.z + ')';
+                // if (Math.abs(pt.z - 127) < 2) color = 'rgb(255, 0, 0)';
 
                 context.fillStyle = color;
 
@@ -99,6 +103,13 @@ class CanvasComponent extends React.Component {
             // clear pts
             pts = [];
         });
+
+        // write formula
+        context.fillStyle = 'rgb(0, 0, 0)';
+        context.font = '22px Helvetica';
+        context.textAlign = 'center';
+        context.fillText("cos(" + (this.props.p == "1" ? "" : this.props.p) + "π * u)", canvas.width / 2, this.state.minY - 20);
+        context.fillText("sin(2π * u)", canvas.width / 2, this.state.minY + this.state.bound + 34);
     }
 
     update() {
@@ -114,8 +125,17 @@ class CanvasComponent extends React.Component {
     }
 
     componentWillReceiveProps() {
-        this.update.call(this);
+        this.update();
     };
+
+    download() {
+        let canvas = this.refs.canvas;
+        let url = canvas.toDataURL(),
+            a = document.createElement('a');
+        a.href = url;
+        a.download = 'linear-patch-' + this.props.p + '.png';
+        return a.click();
+    }
 
     componentDidMount() {
 
@@ -126,6 +146,12 @@ class CanvasComponent extends React.Component {
             'resize',
             _.debounce(this.update.bind(this), 250)
         );
+
+        window.addEventListener('keyup', e => {
+            if (e.keyCode == 13) this.download.call(this);
+        })
+
+        this.update();
     }
 
     render() {

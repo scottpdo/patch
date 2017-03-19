@@ -11,20 +11,27 @@ class CanvasComponent extends React.Component {
         this.state = {
             canvas: null,
             bound: 0, minX: 0, minY: 0,
-            minZ: Infinity, maxZ: -Infinity
+            minZ: -1, maxZ: 1
         };
     }
 
-    P(u, v) {
+    // evaluate at u, v parameters (0 to 1)
+    P(s, t) {
 
-        let v0 = this.props.curves.v0(u),
-            v1 = this.props.curves.v1(u);
+        let u0 = this.props.curves.u0,
+            u1 = this.props.curves.u1,
+            v0 = this.props.curves.v0,
+            v1 = this.props.curves.v1,
+            Lu = u0.evaluate(s).multiply(1 - t).add(u1.evaluate(s).multiply(t)),
+            Lv = v0.evaluate(t).multiply(1 - s).add(v1.evaluate(t).multiply(s)),
+            B = u0.evaluate(0).multiply((1 - s) * (1 - t))
+                .add(u0.evaluate(1).multiply(s * (1 - t)))
+                .add(u1.evaluate(0).multiply((1 - s) * t))
+                .add(u1.evaluate(1).multiply(s * t));
 
-        let x = v0.x * (1 - v) + v1.x * v,
-            y = v0.y * (1 - v) + v1.y * v,
-            z = v0.z * (1 - v) + v1.z * v; // lerp
+        let C = Lu.add(Lv).add(B.multiply(-1));
 
-        return { x, y, z };
+        return C;
     }
 
     // u-v space to screen space
@@ -38,14 +45,18 @@ class CanvasComponent extends React.Component {
                 maxZ: this.state.maxZ
             };
 
-        pt.x = minX + pt.x * bound;
-        pt.y = minY + pt.y * bound;
-        pt.z = (pt.z - minZ) / (maxZ - minZ);
+        // isometric projection
+        let f = (x, y) => 2 * (x - y),
+            g = (x, y) => x + y;
+
+        let x = canvas.width / 2 + f(pt.x(), pt.y()) * bound / 2,
+            y = canvas.height * 1 / 8 + g(pt.x(), pt.y()) * bound / 2 - pt.z() * 40,
+            z = (pt.z() - minZ) / (maxZ - minZ);
 
         // z = 0 to 255
-        pt.z = Math.round(255 * pt.z);
+        z = Math.round(255 * z);
 
-        return { x: pt.x, y: pt.y, z: pt.z };
+        return { x, y, z };
     }
 
     draw() {
@@ -60,17 +71,20 @@ class CanvasComponent extends React.Component {
         let minZ = this.state.minZ,
             maxZ = this.state.maxZ;
 
-        // black bg
-        context.fillStyle = 'rgba(255, 255, 0, 255)';
+        // bg
+        context.fillStyle = 'rgb(80, 200, 255)';
         context.fillRect(0, 0, width, height);
 
-        let d = 1.5 / this.state.bound,
-            r = 1.5;
+        let d = 1 / this.props.d;
 
-        let pts = [];
+        let nu = 0, // number of divisions in u/v direction
+            nv = 0,
+            pts = [];
 
         // first pass: calculate upper/lower z bounds
         for (let u = 0; u < 1; u += d) {
+
+            nv = 0;
 
             for (let v = 0; v < 1; v += d) {
 
@@ -79,37 +93,65 @@ class CanvasComponent extends React.Component {
                 if (pt.z > maxZ) maxZ = pt.z;
 
                 pts.push(pt);
+
+                nv++;
             }
+
+            nu++;
         }
 
         // 2nd pass: draw
         this.setState({ minZ, maxZ }, () => {
 
-            pts.forEach((pt, i) => {
+            pts = pts.map(pt => this.transform(pt));
 
-                pt = this.transform(pt);
+            // quads
+            for (let u = 0; u < nu - 1; u++) {
 
-                let color = 'rgb(' + pt.z + ',' + pt.z + ',' + pt.z + ')';
-                // if (Math.abs(pt.z - 127) < 2) color = 'rgb(255, 0, 0)';
+                for (let v = 0; v < nv - 1; v++) {
 
-                context.fillStyle = color;
+                    // start pt
+                    let i = u * nv + v,
+                        j = i + 1,
+                        k = (u + 1) * nv + v + 1,
+                        l = k - 1;
 
-                context.beginPath();
-                context.arc(pt.x, pt.y, r, 0, 2 * Math.PI);
-                context.fill();
-                context.closePath();
-            });
+                    let pt = pts[i],
+                        z = Math.round((pts[i].z + pts[j].z + pts[k].z + pts[l].z) / 4); // average corners
+
+                    let color = 'rgb(' + z + ',' + z + ',' + z + ')';
+                    context.lineWidth = 0.25;
+                    context.fillStyle = color;
+
+                    context.beginPath();
+                    context.moveTo(pt.x, pt.y);
+
+                    pt = pts[j]; context.lineTo(pt.x, pt.y);
+                    pt = pts[k]; context.lineTo(pt.x, pt.y);
+                    pt = pts[l]; context.lineTo(pt.x, pt.y);
+                    pt = pts[i]; context.lineTo(pt.x, pt.y);
+
+                    context.closePath();
+                    context.fill();
+                    context.stroke();
+                }
+            }
 
             // clear pts
             pts = [];
-        });
 
-        // write formula
-        context.fillStyle = 'rgb(0, 0, 0)';
-        context.font = '22px Helvetica';
-        context.textAlign = 'center';
-        context.fillText("cos(" + (this.props.p == "1" ? "" : this.props.p) + "π * u)", canvas.width / 2, this.state.minY - 20);
-        context.fillText("sin(2π * u)", canvas.width / 2, this.state.minY + this.state.bound + 34);
+            // draw dot for activePt
+            let active = this.transform(this.props.activePt);
+            context.beginPath();
+            context.fillStyle = 'rgb(255, 0, 0)';
+            context.arc(active.x, active.y, 8, 0, Math.PI * 2);
+            context.fill();
+            context.closePath();
+
+            context.font = '16px Helvetica';
+            context.fillStyle = 'rgb(0, 0, 0)';
+            context.fillText("active control pt", active.x + 15, active.y + 5);
+        });
     }
 
     update() {

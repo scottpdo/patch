@@ -8,6 +8,30 @@ class CanvasComponent extends React.Component {
 
         super();
 
+        // set up fill patterns
+        /* let patterns = [];
+        for (let i = 1; i < 10; i++) {
+
+            let canvas = document.createElement('canvas'),
+                context = canvas.getContext('2d');
+
+            canvas.width = canvas.height = 2 * i;
+
+            context.fillStyle = 'rgb(255, 255, 255)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.lineWidth = 0.5;
+
+            context.beginPath();
+            context.moveTo(1, 1);
+            context.lineTo(1, canvas.height);
+            context.moveTo(1, 1);
+            context.lineTo(canvas.width, 1);
+            context.closePath();
+            context.stroke();
+
+            patterns.push(context.createPattern(canvas, 'repeat'));
+        } */
+
         this.state = {
             canvas: null,
             bound: 0, minX: 0, minY: 0,
@@ -55,6 +79,7 @@ class CanvasComponent extends React.Component {
 
         // z = 0 to 255
         z = Math.round(255 * z);
+        // z = Math.round(z * (this.state.patterns.length - 1));
 
         return { x, y, z };
     }
@@ -72,7 +97,8 @@ class CanvasComponent extends React.Component {
             maxZ = this.state.maxZ;
 
         // bg
-        context.fillStyle = 'rgb(80, 200, 255)';
+        // context.fillStyle = 'rgb(80, 200, 255)';
+        context.fillStyle = 'rgb(0, 0, 0)';
         context.fillRect(0, 0, width, height);
 
         let d = 1 / this.props.d;
@@ -120,7 +146,8 @@ class CanvasComponent extends React.Component {
                         z = Math.round((pts[i].z + pts[j].z + pts[k].z + pts[l].z) / 4); // average corners
 
                     let color = 'rgb(' + z + ',' + z + ',' + z + ')';
-                    context.lineWidth = 0.25;
+                    // let color = this.state.patterns[z];
+                    context.lineWidth = 1;
                     context.fillStyle = color;
 
                     context.beginPath();
@@ -132,7 +159,8 @@ class CanvasComponent extends React.Component {
                     pt = pts[i]; context.lineTo(pt.x, pt.y);
 
                     context.closePath();
-                    context.fill();
+                    // context.fill();
+                    context.strokeStyle = 'rgb(255, 255, 255)';
                     context.stroke();
                 }
             }
@@ -141,16 +169,16 @@ class CanvasComponent extends React.Component {
             pts = [];
 
             // draw dot for activePt
-            let active = this.transform(this.props.activePt);
-            context.beginPath();
-            context.fillStyle = 'rgb(255, 0, 0)';
-            context.arc(active.x, active.y, 8, 0, Math.PI * 2);
-            context.fill();
-            context.closePath();
-
-            context.font = '16px Helvetica';
-            context.fillStyle = 'rgb(0, 0, 0)';
-            context.fillText("active control pt", active.x + 15, active.y + 5);
+            // let active = this.transform(this.props.activePt);
+            // context.beginPath();
+            // context.fillStyle = 'rgb(255, 0, 0)';
+            // context.arc(active.x, active.y, 8, 0, Math.PI * 2);
+            // context.fill();
+            // context.closePath();
+            //
+            // context.font = '16px Helvetica';
+            // context.fillStyle = 'rgb(0, 0, 0)';
+            // context.fillText("active control pt", active.x + 15, active.y + 5);
         });
     }
 

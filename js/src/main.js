@@ -66,11 +66,22 @@ class MainComponent extends React.Component {
 
     animate() {
 
-        let deformation = 2,
-            rate = 0.05;
+        let rate = 0.05;
+
+        let deform = r => 2 * r * Math.random() - r;
 
         this.state.pts.forEach(pt => {
-            let targetZ = 2 * deformation * Math.random() - deformation;
+
+            // set original?
+            if (!pt.hasOwnProperty('origX')) pt.origX = pt.x();
+            if (!pt.hasOwnProperty('origY')) pt.origY = pt.y();
+
+            let targetX = pt.origX + deform(0.2),
+                targetY = pt.origY + deform(0.2),
+                targetZ = deform(0.5);
+
+            pt._targetX = targetX;
+            pt._targetY = targetY;
             pt._targetZ = targetZ;
         });
 
@@ -81,9 +92,21 @@ class MainComponent extends React.Component {
             let pts = this.state.pts;
 
             pts.forEach((pt, i) => {
-                if ( Math.abs(pt.z() - pt._targetZ) > rate ) {
+
+                let conditions = (
+                    Math.abs(pt.x() - pt._targetX) > rate ||
+                    Math.abs(pt.y() - pt._targetY) > rate ||
+                    Math.abs(pt.z() - pt._targetZ) > rate
+                );
+
+                if ( conditions ) {
                     done = false;
-                    pt.moveZ(pt._targetZ > pt.z() ? rate : -rate);
+                    if ( Math.abs(pt.x() - pt._targetX) > rate )
+                        pt.moveX(0.05 * (pt._targetX > pt.x() ? rate : -rate));
+                    if ( Math.abs(pt.y() - pt._targetY) > rate )
+                        pt.moveY(0.05 * (pt._targetY > pt.y() ? rate : -rate));
+                    if ( Math.abs(pt.z() - pt._targetZ) > rate )
+                        pt.moveZ(pt._targetZ > pt.z() ? rate : -rate);
                 }
             });
 
@@ -93,7 +116,11 @@ class MainComponent extends React.Component {
             if (!done) return requestAnimationFrame(updatePts);
 
             // if done, clean up
-            if (done) this.state.pts.forEach(pt => delete pt._targetZ);
+            if (done) this.state.pts.forEach(pt => {
+                delete pt._targetX;
+                delete pt._targetY;
+                delete pt._targetZ;
+            });
         };
 
         updatePts();
@@ -122,7 +149,6 @@ class MainComponent extends React.Component {
         return (
             <div style={containerStyle}>
                 <CanvasComponent style={canvasStyle} curves={this.state.curves} d={this.state.d} activePt={pts[activePt % pts.length]} animating={this.state.animating} />
-                <h3 style={{ margin: 0, padding: 0 }}>Reticulation:</h3>
                 <input type="range" onInput={this.reticulate.bind(this)} defaultValue={this.state.d} min="2" max="40" />
                 <br />
                 <button onClick={this.animate.bind(this)}>Animate</button>

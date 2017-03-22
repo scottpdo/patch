@@ -28,7 +28,7 @@ class MainComponent extends React.Component {
         let d2 = new Point(1, 0.667, 0);
 
         this.state = {
-            d: 5,
+            d: 20,
             i: 0,
             activePt: 0,
             pts: [a0, a1, a2, a3, d1, d2, b3, b2, b1, b0, c2, c1],
@@ -37,7 +37,8 @@ class MainComponent extends React.Component {
                 u1: new Bezier(a3, d1, d2, b3),
                 v0: new Bezier(a0, a1, a2, a3),
                 v1: new Bezier(b0, b1, b2, b3)
-            }
+            },
+            animating: false
         };
     }
 
@@ -63,6 +64,43 @@ class MainComponent extends React.Component {
         this.setState({ d: +e.target.value });
     }
 
+    animate() {
+
+        let deformation = 2,
+            rate = 0.05;
+
+        this.state.pts.forEach(pt => {
+            let targetZ = 2 * deformation * Math.random() - deformation;
+            pt._targetZ = targetZ;
+        });
+
+        let updatePts = () => {
+
+            let done = true;
+
+            let pts = this.state.pts;
+
+            pts.forEach((pt, i) => {
+                if ( Math.abs(pt.z() - pt._targetZ) > rate ) {
+                    done = false;
+                    pt.moveZ(pt._targetZ > pt.z() ? rate : -rate);
+                }
+            });
+
+            this.setState({ i: this.state.i + 1 });
+
+            // if not done, keep animating
+            if (!done) return requestAnimationFrame(updatePts);
+
+            // if done, clean up
+            if (done) this.state.pts.forEach(pt => delete pt._targetZ);
+        };
+
+        updatePts();
+
+        this.setState({ i: this.state.i + 1 });
+    }
+
     render() {
 
         let containerStyle = {
@@ -83,8 +121,11 @@ class MainComponent extends React.Component {
 
         return (
             <div style={containerStyle}>
-                <CanvasComponent style={canvasStyle} curves={this.state.curves} d={this.state.d} activePt={pts[activePt % pts.length]} />
-                <input type="range" onInput={this.reticulate.bind(this)} value={this.state.d} min="2" max="40" />
+                <CanvasComponent style={canvasStyle} curves={this.state.curves} d={this.state.d} activePt={pts[activePt % pts.length]} animating={this.state.animating} />
+                <h3 style={{ margin: 0, padding: 0 }}>Reticulation:</h3>
+                <input type="range" onInput={this.reticulate.bind(this)} defaultValue={this.state.d} min="2" max="40" />
+                <br />
+                <button onClick={this.animate.bind(this)}>Animate</button>
             </div>
         );
     }

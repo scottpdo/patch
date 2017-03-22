@@ -50,7 +50,7 @@ class CanvasComponent extends React.Component {
             g = (x, y) => x + y;
 
         let x = canvas.width / 2 + f(pt.x(), pt.y()) * bound / 2,
-            y = canvas.height * 1 / 8 + g(pt.x(), pt.y()) * bound / 2 - pt.z() * 40,
+            y = canvas.height * 7 / 8 - g(pt.x(), pt.y()) * bound / 2 - pt.z() * canvas.height / 20,
             z = (pt.z() - minZ) / (maxZ - minZ);
 
         // z = 0 to 255
@@ -82,13 +82,13 @@ class CanvasComponent extends React.Component {
             pts = [];
 
         // first pass: calculate upper/lower z bounds
-        for (let u = 0; u < 1; u += d) {
+        while (nu <= this.props.d) {
 
             nv = 0;
 
-            for (let v = 0; v < 1; v += d) {
+            while (nv <= this.props.d) {
 
-                let pt = this.P(u, v);
+                let pt = this.P(nu * d, nv * d);
                 if (pt.z < minZ) minZ = pt.z;
                 if (pt.z > maxZ) maxZ = pt.z;
 
@@ -103,7 +103,7 @@ class CanvasComponent extends React.Component {
         // 2nd pass: draw
         this.setState({ minZ, maxZ }, () => {
 
-            pts = pts.map(pt => this.transform(pt));
+            pts = pts.map(pt => this.transform(pt)).reverse();
 
             // quads
             for (let u = 0; u < nu - 1; u++) {
@@ -166,7 +166,7 @@ class CanvasComponent extends React.Component {
         this.setState({ canvas, bound, minX, minY }, this.draw);
     }
 
-    componentWillReceiveProps() {
+    componentWillReceiveProps(nextProps) {
         this.update();
     };
 

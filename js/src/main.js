@@ -66,66 +66,133 @@ class MainComponent extends React.Component {
 
     animate() {
 
-        let rate = 0.05;
+        this.setState({ animating: true }, () => {
 
-        let deform = r => 2 * r * Math.random() - r;
+        let duration = 60;
+
+        let deform = r => 2 * r * Math.random() - r,
+            // easing function
+            ease = t => t < 0.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
+            // derivative of easing function
+            dEase = t => t < 0.5 ? 12*t*t : 12*(t-1)*(t-1),
+            xBound = 0.2,
+            yBound = 0.2,
+            zBound = 0.5;
 
         this.state.pts.forEach(pt => {
 
-            // set original?
+            // set original
             if (!pt.hasOwnProperty('origX')) pt.origX = pt.x();
             if (!pt.hasOwnProperty('origY')) pt.origY = pt.y();
+            if (!pt.hasOwnProperty('origZ')) pt.origZ = pt.z();
 
-            let targetX = pt.origX + deform(0.2),
-                targetY = pt.origY + deform(0.2),
-                targetZ = deform(0.5);
+            pt.dx = deform(xBound);
+            pt.dy = deform(yBound);
+            pt.dz = deform(zBound);
 
-            pt._targetX = targetX;
-            pt._targetY = targetY;
-            pt._targetZ = targetZ;
+            // TODO: restrict to bounds
         });
 
-        let updatePts = () => {
-
-            let done = true;
+        let updatePts = (iter) => {
 
             let pts = this.state.pts;
 
+            // parametrize time 0-1
+            let t = iter / duration;
+
             pts.forEach((pt, i) => {
 
-                let conditions = (
-                    Math.abs(pt.x() - pt._targetX) > rate ||
-                    Math.abs(pt.y() - pt._targetY) > rate ||
-                    Math.abs(pt.z() - pt._targetZ) > rate
-                );
+                // TODO: easing
+                // let dx = (pt.dx / duration) * ease(t);
 
-                if ( conditions ) {
-                    done = false;
-                    if ( Math.abs(pt.x() - pt._targetX) > rate )
-                        pt.moveX(0.05 * (pt._targetX > pt.x() ? rate : -rate));
-                    if ( Math.abs(pt.y() - pt._targetY) > rate )
-                        pt.moveY(0.05 * (pt._targetY > pt.y() ? rate : -rate));
-                    if ( Math.abs(pt.z() - pt._targetZ) > rate )
-                        pt.moveZ(pt._targetZ > pt.z() ? rate : -rate);
-                }
+                pt.moveX(dEase(t) * pt.dx / duration);
+                pt.moveY(dEase(t) * pt.dy / duration);
+                pt.moveZ(dEase(t) * pt.dz / duration);
             });
 
             this.setState({ i: this.state.i + 1 });
 
             // if not done, keep animating
-            if (!done) return requestAnimationFrame(updatePts);
+            if (iter < duration) {
+                return requestAnimationFrame(updatePts.bind(this, iter + 1));
+            }
 
             // if done, clean up
-            if (done) this.state.pts.forEach(pt => {
-                delete pt._targetX;
-                delete pt._targetY;
-                delete pt._targetZ;
+            this.state.pts.forEach(pt => {
+                delete pt.dx;
+                delete pt.dy;
+                delete pt.dz;
             });
+
+            this.setState({ animating: false });
         };
 
-        updatePts();
+        updatePts(0);
 
-        this.setState({ i: this.state.i + 1 });
+        });
+    }
+
+    restore() {
+
+        this.setState({ animating: true }, () => {
+
+        let duration = 60;
+
+        // assume we have animated at least once
+        let hasAnimated = true;
+
+        let deform = r => 2 * r * Math.random() - r,
+            // easing function
+            ease = t => t < 0.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
+            // derivative of easing function
+            dEase = t => t < 0.5 ? 12*t*t : 12*(t-1)*(t-1);
+
+        this.state.pts.forEach(pt => {
+            // check if we have animated
+            if ( !pt.hasOwnProperty('origX') ||
+                 !pt.hasOwnProperty('origY') ||
+                 !pt.hasOwnProperty('origZ')
+            ) {
+
+                 hasAnimated = false;
+
+            } else {
+                pt.dx = pt.origX - pt.x();
+                pt.dy = pt.origY - pt.y();
+                pt.dz = pt.origZ - pt.z();
+            }
+        });
+
+        // if not, nothing to do!
+        if (!hasAnimated) return;
+
+        let updatePts = (iter) => {
+
+            let pts = this.state.pts;
+
+            // parametrize time 0-1
+            let t = iter / duration;
+
+            pts.forEach((pt, i) => {
+
+                pt.moveX(dEase(t) * pt.dx / duration);
+                pt.moveY(dEase(t) * pt.dy / duration);
+                pt.moveZ(dEase(t) * pt.dz / duration);
+            });
+
+            this.setState({ i: this.state.i + 1 });
+
+            // if not done, keep animating
+            if (iter < duration) {
+                return requestAnimationFrame(updatePts.bind(this, iter + 1));
+            }
+
+            this.setState({ animating: false });
+        };
+
+        updatePts(0);
+
+        });
     }
 
     render() {
@@ -151,7 +218,9 @@ class MainComponent extends React.Component {
                 <CanvasComponent style={canvasStyle} curves={this.state.curves} d={this.state.d} activePt={pts[activePt % pts.length]} animating={this.state.animating} />
                 <input type="range" onInput={this.reticulate.bind(this)} defaultValue={this.state.d} min="2" max="40" />
                 <br />
-                <button onClick={this.animate.bind(this)}>Animate</button>
+                <button onClick={this.animate.bind(this)} disabled={this.state.animating}>Animate</button>
+                <br />
+                <button onClick={this.restore.bind(this)} disabled={this.state.animating}>Restore</button>
             </div>
         );
     }

@@ -77,7 +77,7 @@ class MainComponent extends React.Component {
             dEase = t => t < 0.5 ? 12*t*t : 12*(t-1)*(t-1),
             xBound = 0.2,
             yBound = 0.2,
-            zBound = 0.5;
+            zBound = 2.0;
 
         this.state.pts.forEach(pt => {
 
@@ -89,8 +89,6 @@ class MainComponent extends React.Component {
             pt.dx = deform(xBound);
             pt.dy = deform(yBound);
             pt.dz = deform(zBound);
-
-            // TODO: restrict to bounds
         });
 
         let updatePts = (iter) => {
@@ -101,9 +99,6 @@ class MainComponent extends React.Component {
             let t = iter / duration;
 
             pts.forEach((pt, i) => {
-
-                // TODO: easing
-                // let dx = (pt.dx / duration) * ease(t);
 
                 pt.moveX(dEase(t) * pt.dx / duration);
                 pt.moveY(dEase(t) * pt.dy / duration);
@@ -195,6 +190,25 @@ class MainComponent extends React.Component {
         });
     }
 
+    rotate() {
+
+        let _rotate = (i) => {
+
+            for (let i = 0; i < this.state.pts.length; i++) {
+                this.state.pts[i]
+                    .moveX(-0.5).moveY(-0.5)
+                    .rotate(1)
+                    .moveX(0.5).moveY(0.5);
+            }
+
+            this.setState({ i: this.state.i + 1 });
+
+            if (i < 100) requestAnimationFrame(_rotate.bind(this, i + 1));
+        };
+
+        _rotate(0);
+    }
+
     render() {
 
         let containerStyle = {
@@ -221,6 +235,8 @@ class MainComponent extends React.Component {
                 <button onClick={this.animate.bind(this)} disabled={this.state.animating}>Animate</button>
                 <br />
                 <button onClick={this.restore.bind(this)} disabled={this.state.animating}>Restore</button>
+                <br />
+                <button onClick={this.rotate.bind(this)}>Rotate</button>
             </div>
         );
     }

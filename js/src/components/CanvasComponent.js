@@ -24,6 +24,7 @@ class CanvasComponent extends React.Component {
              * @memberof CanvasComponent.state
              */
             canvas: null,
+            camera: new Camera(new Point(), new Point()),
             bound: 0, minX: 0, minY: 0
         };
     }
@@ -67,18 +68,21 @@ class CanvasComponent extends React.Component {
             };
 
         // isometric projection
-        let f = (x, y) => 2 * (x - y),
-            g = (x, y) => x + y;
+        // let f = (x, y) => 2 * (x - y),
+        //     g = (x, y) => x + y;
         //
         // perspective projection (TODO)
-        // let f = pt => pt.x(),
-        //     g = pt => pt.y(),
-        //     h = pt => 1;
+        pt.moveX(-0.5);
+        pt.moveY(-0.5);
+        pt.moveZ(3);
+        let f = pt => pt.x() / pt.z(),
+            g = pt => pt.y() / pt.z();
 
-        let x = canvas.width / 2 + f(pt.x(), pt.y()) * bound / 2,
-            y = canvas.height * 7 / 8 - g(pt.x(), pt.y()) * bound / 2 - pt.z() * canvas.height / 20;
-        // let x = canvas.width * f(pt),
-        //     y = canvas.height * f(pt);
+        // let x = canvas.width / 2 + f(pt.x(), pt.y()) * bound / 2,
+        //     y = canvas.height * 7 / 8 - g(pt.x(), pt.y()) * bound / 2 - pt.z() * canvas.height / 20;
+        let dim = Math.min(canvas.width, canvas.height);
+        let x = Math.round(canvas.width / 2 + dim * f(pt)),
+            y = Math.round(canvas.height / 2 - dim * g(pt));
 
         return new Point(x, y, 0);
     }

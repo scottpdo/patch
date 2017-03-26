@@ -1,89 +1,91 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import _ from 'lodash';
+import Point from '../Point';
+import Camera from '../Camera';
 
+/**
+ * A React component that handles drawing.
+ * @namespace
+ */
 class CanvasComponent extends React.Component {
 
     constructor() {
 
         super();
 
-        // set up fill patterns
-        /* let patterns = [];
-        for (let i = 1; i < 10; i++) {
-
-            let canvas = document.createElement('canvas'),
-                context = canvas.getContext('2d');
-
-            canvas.width = canvas.height = 2 * i;
-
-            context.fillStyle = 'rgb(255, 255, 255)';
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            context.lineWidth = 0.5;
-
-            context.beginPath();
-            context.moveTo(1, 1);
-            context.lineTo(1, canvas.height);
-            context.moveTo(1, 1);
-            context.lineTo(canvas.width, 1);
-            context.closePath();
-            context.stroke();
-
-            patterns.push(context.createPattern(canvas, 'repeat'));
-        } */
-
+        /**
+         * @memberof CanvasComponent
+         * @type {Object}
+         */
         this.state = {
+            /**
+             * HTMLCanvasElement that gets drawn to the screen.
+             * @memberof CanvasComponent.state
+             */
             canvas: null,
-            bound: 0, minX: 0, minY: 0,
-            minZ: -1, maxZ: 1
+            bound: 0, minX: 0, minY: 0
         };
     }
 
-    // evaluate at u, v parameters (0 to 1)
-    P(s, t) {
+    /**
+     * Evaluate a point on the surface in u/v space, returning
+     * a Point world space.
+     * @param {Number} u The u parameter, between 0 and 1 (inclusive).
+     * @param {Number} v The v parameter, between 0 and 1 (inclusive).
+     * @returns {Point} The point on the surface.
+     */
+    evaluate(u, v) {
 
         let u0 = this.props.curves.u0,
             u1 = this.props.curves.u1,
             v0 = this.props.curves.v0,
             v1 = this.props.curves.v1,
-            Lu = u0.evaluate(s).multiply(1 - t).add(u1.evaluate(s).multiply(t)),
-            Lv = v0.evaluate(t).multiply(1 - s).add(v1.evaluate(t).multiply(s)),
-            B = u0.evaluate(0).multiply((1 - s) * (1 - t))
-                .add(u0.evaluate(1).multiply(s * (1 - t)))
-                .add(u1.evaluate(0).multiply((1 - s) * t))
-                .add(u1.evaluate(1).multiply(s * t));
+            Lu = u0.evaluate(u).multiply(1 - v).add(u1.evaluate(u).multiply(v)),
+            Lv = v0.evaluate(v).multiply(1 - u).add(v1.evaluate(v).multiply(u)),
+            B = u0.evaluate(0).multiply((1 - u) * (1 - v))
+                .add(u0.evaluate(1).multiply(u * (1 - v)))
+                .add(u1.evaluate(0).multiply((1 - u) * v))
+                .add(u1.evaluate(1).multiply(u * v));
 
         let C = Lu.add(Lv).add(B.multiply(-1));
 
         return C;
     }
 
-    // u-v space to screen space
+    /**
+     * Given a Point in world space, project it onto the screen.
+     * @param {Point} pt The Point to project.
+     * @returns {Point} pt - The Point projected to screen-space.
+     */
     transform(pt) {
 
         let bound = this.state.bound,
-            { minX, minY, minZ, maxZ } = {
+            { minX, minY } = {
                 minX: this.state.minX,
-                minY: this.state.minY,
-                minZ: this.state.minZ,
-                maxZ: this.state.maxZ
+                minY: this.state.minY
             };
 
         // isometric projection
         let f = (x, y) => 2 * (x - y),
             g = (x, y) => x + y;
+        //
+        // perspective projection (TODO)
+        // let f = pt => pt.x(),
+        //     g = pt => pt.y(),
+        //     h = pt => 1;
 
         let x = canvas.width / 2 + f(pt.x(), pt.y()) * bound / 2,
-            y = canvas.height * 7 / 8 - g(pt.x(), pt.y()) * bound / 2 - pt.z() * canvas.height / 20,
-            z = (pt.z() - minZ) / (maxZ - minZ);
+            y = canvas.height * 7 / 8 - g(pt.x(), pt.y()) * bound / 2 - pt.z() * canvas.height / 20;
+        // let x = canvas.width * f(pt),
+        //     y = canvas.height * f(pt);
 
-        // z = 0 to 255
-        z = Math.round(255 * z);
-        // z = Math.round(z * (this.state.patterns.length - 1));
-
-        return { x, y, z };
+        return new Point(x, y, 0);
     }
 
+    /**
+     * Draw the points to the screen.
+     */
     draw() {
 
         console.log('redrawing');
@@ -93,11 +95,7 @@ class CanvasComponent extends React.Component {
             width = canvas.width,
             height = canvas.height;
 
-        let minZ = this.state.minZ,
-            maxZ = this.state.maxZ;
-
         // bg
-        // context.fillStyle = 'rgb(80, 200, 255)';
         context.fillStyle = 'rgb(0, 0, 0)';
         context.fillRect(0, 0, width, height);
 
@@ -114,10 +112,7 @@ class CanvasComponent extends React.Component {
 
             while (nv <= this.props.d) {
 
-                let pt = this.P(nu * d, nv * d);
-                if (pt.z < minZ) minZ = pt.z;
-                if (pt.z > maxZ) maxZ = pt.z;
-
+                let pt = this.evaluate(nu * d, nv * d);
                 pts.push(pt);
 
                 nv++;
@@ -127,61 +122,44 @@ class CanvasComponent extends React.Component {
         }
 
         // 2nd pass: draw
-        this.setState({ minZ, maxZ }, () => {
+        pts = pts.map(pt => this.transform(pt)).reverse();
 
-            pts = pts.map(pt => this.transform(pt)).reverse();
+        // quads
+        for (let u = 0; u < nu - 1; u++) {
 
-            // quads
-            for (let u = 0; u < nu - 1; u++) {
+            for (let v = 0; v < nv - 1; v++) {
 
-                for (let v = 0; v < nv - 1; v++) {
+                // start pt
+                let i = u * nv + v,
+                    j = i + 1,
+                    k = (u + 1) * nv + v + 1,
+                    l = k - 1;
 
-                    // start pt
-                    let i = u * nv + v,
-                        j = i + 1,
-                        k = (u + 1) * nv + v + 1,
-                        l = k - 1;
+                let pt = pts[i];
 
-                    let pt = pts[i],
-                        z = Math.round((pts[i].z + pts[j].z + pts[k].z + pts[l].z) / 4); // average corners
+                context.lineWidth = 1;
+                context.strokeStyle = 'rgb(255, 255, 255)';
 
-                    let color = 'rgb(' + z + ',' + z + ',' + z + ')';
-                    // let color = this.state.patterns[z];
-                    context.lineWidth = 1;
-                    context.fillStyle = color;
+                context.beginPath();
+                context.moveTo(pt.x, pt.y);
 
-                    context.beginPath();
-                    context.moveTo(pt.x, pt.y);
+                pt = pts[j]; context.lineTo(pt.x(), pt.y());
+                pt = pts[k]; context.lineTo(pt.x(), pt.y());
+                pt = pts[l]; context.lineTo(pt.x(), pt.y());
+                pt = pts[i]; context.lineTo(pt.x(), pt.y());
 
-                    pt = pts[j]; context.lineTo(pt.x, pt.y);
-                    pt = pts[k]; context.lineTo(pt.x, pt.y);
-                    pt = pts[l]; context.lineTo(pt.x, pt.y);
-                    pt = pts[i]; context.lineTo(pt.x, pt.y);
-
-                    context.closePath();
-                    // context.fill();
-                    context.strokeStyle = 'rgb(255, 255, 255)';
-                    context.stroke();
-                }
+                context.closePath();
+                context.stroke();
             }
+        }
 
-            // clear pts
-            pts = [];
-
-            // draw dot for activePt
-            // let active = this.transform(this.props.activePt);
-            // context.beginPath();
-            // context.fillStyle = 'rgb(255, 0, 0)';
-            // context.arc(active.x, active.y, 8, 0, Math.PI * 2);
-            // context.fill();
-            // context.closePath();
-            //
-            // context.font = '16px Helvetica';
-            // context.fillStyle = 'rgb(0, 0, 0)';
-            // context.fillText("active control pt", active.x + 15, active.y + 5);
-        });
+        // clear pts
+        pts = [];
     }
 
+    /**
+     * Given new dimensions, redraw the canvas.
+     */
     update() {
         let canvas = this.refs.canvas;
         canvas.width = window.innerWidth;
@@ -203,10 +181,13 @@ class CanvasComponent extends React.Component {
         let url = canvas.toDataURL(),
             a = document.createElement('a');
         a.href = url;
-        a.download = 'linear-patch-' + this.props.p + '.png';
+        a.download = 'patch.png';
         return a.click();
     }
 
+    /**
+     * Sets up canvas and adds global event listeners.
+     */
     componentDidMount() {
 
         let canvas = this.refs.canvas;

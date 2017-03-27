@@ -6,18 +6,19 @@
  * @param {Number} z - z value of point. Defaults to 0.
  */
 function Point(x = 0, y = 0, z = 0) {
-    this.pt = [x, y, z];
-};
+  this.pt = [x, y, z];
+}
 
 /**
  * Set or get the point's x value.
  * @param {Number|Null} x - x value
- * @returns {Number|Point} If no value given, returns the x value. Otherwise returns the Point object.
+ * @returns {Number|Point} If no value given, returns the x value.
+ * Otherwise returns the Point object.
  */
-Point.prototype.x = function(x) {
-    if (x == null) return this.pt[0];
-    this.pt[0] = x;
-    return this;
+Point.prototype.x = function x(_x) {
+  if (_x == null) return this.pt[0];
+  this.pt[0] = _x;
+  return this;
 };
 
 /**
@@ -25,15 +26,15 @@ Point.prototype.x = function(x) {
  * @param {Number} dx - Distance by which to move the Point's x value.
  * @returns {Point} The point object.
  */
-Point.prototype.moveX = function(dx) {
-    this.pt[0] += dx;
-    return this;
+Point.prototype.moveX = function moveX(dx) {
+  this.pt[0] += dx;
+  return this;
 };
 
-Point.prototype.y = function(y) {
-    if (y == null) return this.pt[1];
-    this.pt[1] = y;
-    return this;
+Point.prototype.y = function y(_y) {
+  if (_y == null) return this.pt[1];
+  this.pt[1] = _y;
+  return this;
 };
 
 /**
@@ -41,15 +42,15 @@ Point.prototype.y = function(y) {
  * @param {Number} dy - Distance by which to move the Point's y value.
  * @returns {Point} The point object.
  */
-Point.prototype.moveY = function(dy) {
-    this.pt[1] += dy;
-    return this;
+Point.prototype.moveY = function moveY(dy) {
+  this.pt[1] += dy;
+  return this;
 };
 
-Point.prototype.z = function(z) {
-    if (z == null) return this.pt[2];
-    this.pt[2] = z;
-    return this;
+Point.prototype.z = function z(_z) {
+  if (_z == null) return this.pt[2];
+  this.pt[2] = _z;
+  return this;
 };
 
 /**
@@ -57,9 +58,9 @@ Point.prototype.z = function(z) {
  * @param {Number} dz - Distance by which to move the Point's z value.
  * @returns {Point} The point object.
  */
-Point.prototype.moveZ = function(dz) {
-    this.pt[2] += dz;
-    return this;
+Point.prototype.moveZ = function moveZ(dz) {
+  this.pt[2] += dz;
+  return this;
 };
 
 /**
@@ -67,8 +68,8 @@ Point.prototype.moveZ = function(dz) {
  * @param {Number} s - Amount by which to scale the point.
  * @returns {Point} A new Point object with the updated position.
  */
-Point.prototype.multiply = function(s) {
-    return new Point(this.pt[0] * s, this.pt[1] * s, this.pt[2] * s);
+Point.prototype.multiply = function multiply(s) {
+  return new Point(this.pt[0] * s, this.pt[1] * s, this.pt[2] * s);
 };
 
 /**
@@ -76,12 +77,12 @@ Point.prototype.multiply = function(s) {
  * @param {Point} pt - The Point to add to the current one.
  * @returns {Point} A new Point object with the updated position.
  */
-Point.prototype.add = function(pt) {
-    return new Point(
-        this.pt[0] + pt.pt[0],
-        this.pt[1] + pt.pt[1],
-        this.pt[2] + pt.pt[2]
-    );
+Point.prototype.add = function add(pt) {
+  return new Point(
+    this.pt[0] + pt.pt[0],
+    this.pt[1] + pt.pt[1],
+    this.pt[2] + pt.pt[2],
+  );
 };
 
 /**
@@ -89,20 +90,19 @@ Point.prototype.add = function(pt) {
  * @param {Number} deg - Number of degrees by which to rotate.
  * @returns {Point} The original Point object with rotated position.
  */
-Point.prototype.rotate = function(deg) {
+Point.prototype.rotate = function rotate(deg) {
+  const x = this.x();
+  const y = this.y();
+  const c = Math.cos((deg * Math.PI) / 180);
+  const s = Math.sin((deg * Math.PI) / 180);
 
-    let x = this.x(),
-        y = this.y(),
-        c = Math.cos(deg * Math.PI / 180),
-        s = Math.sin(deg * Math.PI / 180);
+  const nx = (c * x) - (s * y);
+  const ny = (s * x) + (c * y);
 
-    let nx = c * x - s * y;
-    let ny = s * x + c * y;
+  this.x(nx);
+  this.y(ny);
 
-    this.x(nx);
-    this.y(ny);
-
-    return this;
+  return this;
 };
 
 export default Point;

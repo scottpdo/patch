@@ -2,15 +2,13 @@
   "name": "patch",
   "version": "1.0.0",
   "description": "",
-  "main": "gulpfile.js",
+  "main": "js/src/main.js",
   "scripts": {
-    "docs": "documentation js/src/main.js -f html -o docs"
+    "docs": "documentation js/src/main.js -f html -o docs",
+    "test": "eslint js/src"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/scottpdo/patch.git"
-  },
-  "author": "",
+  "repository": "git+https://github.com/scottpdo/patch.git",
+  "author": "Scott Donaldson <scott.p.donaldson@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/scottpdo/patch/issues"
@@ -28,6 +26,11 @@
     "babelify": "^7.3.0",
     "browser-sync": "^2.18.7",
     "browserify": "^14.0.0",
+    "eslint": "^3.15.0",
+    "eslint-config-airbnb": "^14.1.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2 || ^4.0.0",
+    "eslint-plugin-react": "^6.9.0",
     "express": "^4.14.1",
     "gulp": "^3.9.1",
     "gulp-postcss": "^6.3.0",

@@ -1,3 +1,11 @@
 {
-    "extends": "airbnb"
+  "extends": [
+    "airbnb"
+  ],
+  "plugins": [
+    "compat"
+  ],
+  "rules": {
+    "compat/compat": 2
+  }
 }

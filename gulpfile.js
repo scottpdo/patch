@@ -16,7 +16,7 @@ var _ = require('lodash'),
 // ----- Config
 
 var paths = {
-    jsIn: 'js/src/main.js',
+    jsIn: 'js/src/main.jsx',
     jsOut: 'js/dist',
     cssIn: 'scss/**/*.scss',
     cssOut: 'css',

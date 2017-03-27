@@ -1,4 +1,4 @@
-import Point from './Point';
+// import Point from './Point';
 
 /**
  * Sets up a Camera from a location and target.
@@ -6,8 +6,8 @@ import Point from './Point';
  * @param {Point} direction - The direction of the Camera.
  */
 function Camera(location, direction) {
-    this.location = location;
-    this.direction = direction;
+  this.location = location;
+  this.direction = direction;
 }
 
 export default Camera;

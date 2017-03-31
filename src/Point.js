@@ -90,7 +90,7 @@ Point.prototype.add = function add(pt) {
  * @param {Number} deg - Number of degrees by which to rotate.
  * @returns {Point} The original Point object with rotated position.
  */
-Point.prototype.rotate = function rotate(deg) {
+Point.prototype.rotateXY = function rotateXY(deg) {
   const x = this.x();
   const y = this.y();
   const c = Math.cos((deg * Math.PI) / 180);
@@ -101,6 +101,26 @@ Point.prototype.rotate = function rotate(deg) {
 
   this.x(nx);
   this.y(ny);
+
+  return this;
+};
+
+/**
+ * In-place rotation of Point in y-z space (i.e. about x axis).
+ * @param {Number} deg - Number of degrees by which to rotate.
+ * @returns {Point} The original Point object with rotated position.
+ */
+Point.prototype.rotateYZ = function rotateYZ(deg) {
+  const y = this.y();
+  const z = this.z();
+  const c = Math.cos((deg * Math.PI) / 180);
+  const s = Math.sin((deg * Math.PI) / 180);
+
+  const ny = (c * y) - (s * z);
+  const nz = (s * y) + (c * z);
+
+  this.y(ny);
+  this.z(nz);
 
   return this;
 };

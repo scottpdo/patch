@@ -1,10 +1,14 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+
 import Point from './Point';
 import Bezier from './Bezier';
-import CanvasComponent from './components/CanvasComponent.jsx';
 
-class MainComponent extends React.Component {
+import CanvasComponent from './components/CanvasComponent';
+import UIComponent from './components/UIComponent';
+
+import './App.css';
+
+class App extends React.Component {
   constructor() {
     super();
 
@@ -38,11 +42,13 @@ class MainComponent extends React.Component {
       animating: false,
     };
 
-    // bind functions
-    this.animate = this.animate.bind(this);
-    this.restore = this.restore.bind(this);
-    this.reticulate = this.reticulate.bind(this);
-    this.rotate = this.rotate.bind(this, 0);
+    // bind functions for UI controls
+    this.controls = {
+      animate: this.animate.bind(this),
+      restore: this.restore.bind(this),
+      reticulate: this.reticulate.bind(this),
+      rotate: this.rotate.bind(this, 0),
+    };
   }
 
   componentDidMount() {
@@ -77,7 +83,7 @@ class MainComponent extends React.Component {
       const dEase = (t) => t < 0.5 ? 12 * t * t : 12 * (t - 1) * (t - 1);
       const xBound = 0.2;
       const yBound = 0.2;
-      const zBound = 2.0;
+      const zBound = 0.5;
 
       this.state.pts.forEach(pt => {
         // set original
@@ -176,31 +182,47 @@ class MainComponent extends React.Component {
   }
 
   rotate(i) {
-    for (let j = 0; j < this.state.pts.length; j += 1) {
-      this.state.pts[j].moveX(-0.5)
-        .moveY(-0.5)
-        .rotate(1)
-        .moveX(0.5)
-        .moveY(0.5);
-    }
 
-    this.setState({ i: this.state.i + 1 });
+    this.state.pts.forEach(pt => {
+      // set original
+      if (pt.origX == null) pt.origX = pt.x();
+      if (pt.origY == null) pt.origY = pt.y();
+      if (pt.origZ == null) pt.origZ = pt.z();
+    });
 
-    if (i < 100) window.requestAnimationFrame(this.rotate.bind(this, i + 1));
+    this.setState({ animating: true }, () => {
+
+      const duration = 100;
+
+      const dEase = (t) => t < 0.5 ? 12 * t * t : 12 * (t - 1) * (t - 1);
+
+      const t = i / duration;
+
+      for (let j = 0; j < this.state.pts.length; j += 1) {
+        this.state.pts[j].moveX(-0.5)
+          .moveY(-0.5)
+          .rotateYZ(dEase(t) * 1)
+          .rotateXY(dEase(t) * 0.5)
+          .moveX(0.5)
+          .moveY(0.5);
+      }
+
+      this.setState({ i: this.state.i + 1 });
+
+      if (i < duration) {
+        return window.requestAnimationFrame(this.rotate.bind(this, i + 1));
+      }
+
+      return this.setState({ animating: false });
+    });
   }
 
   render() {
     let activePt = this.state.activePt;
 
-    const containerStyle = {
+    const container = {
       height: '100vh',
       width: '100vw',
-    };
-
-    const canvasStyle = {
-      position: 'absolute',
-      top: 0,
-      left: 0,
     };
 
     const pts = this.state.pts;
@@ -208,37 +230,20 @@ class MainComponent extends React.Component {
     while (activePt < 0) activePt += pts.length;
 
     return (
-      <div style={containerStyle}>
+      <div style={container}>
         <CanvasComponent
-          style={canvasStyle}
           curves={this.state.curves}
           d={this.state.d}
           activePt={pts[activePt % pts.length]} animating={this.state.animating}
         />
-        <input
-          type="range"
-          onInput={this.reticulate}
-          defaultValue={this.state.d} min="2" max="40"
+        <UIComponent
+          controls={this.controls}
+          d={this.state.d}
+          animating={this.state.animating}
         />
-        <br />
-        <button
-          onClick={this.animate}
-          disabled={this.state.animating}
-        >Animate
-        </button>
-        <br />
-        <button
-          onClick={this.restore}
-          disabled={this.state.animating}
-        >Restore</button>
-        <br />
-        <button onClick={this.rotate}>Rotate</button>
       </div>
     );
   }
 }
 
-ReactDOM.render(
-  <MainComponent />,
-  document.getElementById('main'),
-);
+export default App;

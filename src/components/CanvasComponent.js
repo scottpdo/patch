@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component, PropTypes } from 'react';
 import _ from 'lodash';
 
 import Point from '../Point';
@@ -9,7 +9,7 @@ import Camera from '../Camera';
  * A React component that handles drawing.
  * @namespace
  */
-class CanvasComponent extends React.Component {
+class CanvasComponent extends Component {
   constructor() {
     super();
     /**
@@ -22,10 +22,8 @@ class CanvasComponent extends React.Component {
        * @memberof CanvasComponent.state
        */
       canvas: null,
+      buffer: document.createElement('canvas'),
       camera: new Camera(new Point(), new Point()),
-      bound: 0,
-      minX: 0,
-      minY: 0,
     };
   }
 
@@ -64,28 +62,17 @@ class CanvasComponent extends React.Component {
    * @returns {Point} pt - The Point projected to screen-space.
    */
   transform(pt) {
-    // let bound = this.state.bound;
-    let { minX, minY } = {
-      minX: this.state.minX,
-      minY: this.state.minY,
-    };
+    const buffer = this.state.buffer;
 
-    // isometric projection
-    // let f = (x, y) => 2 * (x - y),
-    //     g = (x, y) => x + y;
-    //
-    // perspective projection (TODO)
     pt.moveX(-0.5);
     pt.moveY(-0.5);
-    pt.moveZ(3);
+    pt.moveZ(1.5);
     let f = pt => pt.x() / pt.z(),
         g = pt => pt.y() / pt.z();
 
-    // let x = canvas.width / 2 + f(pt.x(), pt.y()) * bound / 2,
-    //     y = canvas.height * 7 / 8 - g(pt.x(), pt.y()) * bound / 2 - pt.z() * canvas.height / 20;
-    let dim = Math.min(canvas.width, canvas.height);
-    let x = Math.round(canvas.width / 2 + dim * f(pt)),
-        y = Math.round(canvas.height / 2 - dim * g(pt));
+    let dim = Math.min(buffer.width, buffer.height);
+    let x = Math.round(buffer.width / 2 + dim * f(pt)),
+        y = Math.round(buffer.height / 2 - dim * g(pt));
 
     return new Point(x, y, 0);
   }
@@ -97,9 +84,11 @@ class CanvasComponent extends React.Component {
     console.log('redrawing');
 
     const canvas = this.state.canvas;
-    const context = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
+    const buffer = this.state.buffer;
+    const context = buffer.getContext('2d');
+    const canvasContext = canvas.getContext('2d');
+    const width = buffer.width;
+    const height = buffer.height;
 
     const d = 1 / this.props.d;
 
@@ -155,6 +144,8 @@ class CanvasComponent extends React.Component {
       }
     }
 
+    canvasContext.drawImage(buffer, 0, 0, canvas.width, canvas.height);
+
     // clear pts
     pts = [];
   }
@@ -163,19 +154,21 @@ class CanvasComponent extends React.Component {
    * Given new dimensions, redraw the canvas.
    */
   update() {
-      let canvas = this.refs.canvas;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
 
-      let bound = 0.8 * Math.min(canvas.width, canvas.height),
-          minX = 0.5 * (canvas.width - bound),
-          minY = 0.5 * (canvas.height - bound);
+    let canvas = this.refs.canvas;
+    let buffer = this.state.buffer;
 
-      this.setState({ canvas, bound, minX, minY }, this.draw);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    buffer.width = 1.2 * canvas.width;
+    buffer.height = 1.2 * canvas.height;
+
+    this.setState({ canvas }, this.draw);
   }
 
   download() {
-      let canvas = this.refs.canvas;
+      let canvas = this.state.buffer;
       let url = canvas.toDataURL(),
           a = document.createElement('a');
       a.href = url;
@@ -188,32 +181,29 @@ class CanvasComponent extends React.Component {
    */
   componentDidMount() {
 
-    let canvas = this.refs.canvas;
-    window.canvas = canvas; // debugging
-
     window.addEventListener(
       'resize',
       _.debounce(this.update.bind(this), 250),
     );
 
     window.addEventListener('keyup', e => {
-      if (e.keyCode == 13) this.download.call(this);
+      if (e.keyCode === 13) this.download.call(this);
     })
 
     this.update();
   }
 
   render() {
-    return <canvas style={this.props.style} ref="canvas" />;
+    return <canvas ref="canvas" />;
   }
 }
 
 CanvasComponent.propTypes = {
-  curves: React.PropTypes.shape({
-    u0: React.PropTypes.instanceof(Bezier).isRequired,
-    u1: React.PropTypes.instanceof(Bezier).isRequired,
-    v0: React.PropTypes.instanceof(Bezier).isRequired,
-    v1: React.PropTypes.instanceof(Bezier).isRequired,
+  curves: PropTypes.shape({
+    u0: PropTypes.instanceOf(Bezier).isRequired,
+    u1: PropTypes.instanceOf(Bezier).isRequired,
+    v0: PropTypes.instanceOf(Bezier).isRequired,
+    v1: PropTypes.instanceOf(Bezier).isRequired,
   }).isRequired,
 };
 

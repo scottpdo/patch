@@ -9,14 +9,18 @@ import Point from './Point';
  * @param {Point} p3
  */
 function Bezier(p0, p1, p2, p3) {
-  this.p0 = p0;
-  this.p1 = p1;
-  this.p2 = p2;
-  this.p3 = p3;
 
-  this.type = 'cubic';
-  if (!p2) this.type = 'linear';
-  else if (!p3) this.type = 'quadratic';
+  if (p0 instanceof Array) {
+    p0.forEach((pt, i) => {
+      const num = "p" + i;
+      this[num] = pt;
+    });
+  } else {
+    this.p0 = p0;
+    this.p1 = p1;
+    this.p2 = p2;
+    this.p3 = p3;
+  }
 }
 
 /**
@@ -31,19 +35,19 @@ Bezier.prototype.evaluate = function evaluate(t) {
 
   let pt = new Point();
 
-  if (this.type === 'cubic') {
-    pt = pt.add(this.p0.multiply(it * it * it))
-      .add(this.p1.multiply(3 * it * it * t))
-      .add(this.p2.multiply(3 * it * t * t))
-      .add(this.p3.multiply(t * t * t));
-  } else if (this.type === 'linear') {
-    pt = pt.add(this.p0.multiply(it))
-      .add(this.p1.multiply(t));
-  } else if (this.type === 'quadratic') {
-    pt = pt.add(this.p0.multiply(it * it))
-      .add(this.p1.multiply(2 * it * t))
-      .add(this.p2.multiply(t * t));
-  }
+  // if (this.type === 'cubic') {
+  pt = pt.add(this.p0.multiply(it * it * it))
+    .add(this.p1.multiply(3 * it * it * t))
+    .add(this.p2.multiply(3 * it * t * t))
+    .add(this.p3.multiply(t * t * t));
+  // } else if (this.type === 'linear') {
+  //   pt = pt.add(this.p0.multiply(it))
+  //     .add(this.p1.multiply(t));
+  // } else if (this.type === 'quadratic') {
+  //   pt = pt.add(this.p0.multiply(it * it))
+  //     .add(this.p1.multiply(2 * it * t))
+  //     .add(this.p2.multiply(t * t));
+  // }
 
   return pt;
 };

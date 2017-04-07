@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { Component, PropTypes } from 'react';
 
 import '../css/ui.css';
 
-class UIComponent extends React.Component {
+class UIComponent extends Component {
   constructor() {
     super();
     this.state = {};
@@ -18,21 +18,19 @@ class UIComponent extends React.Component {
           defaultValue={this.props.d} min="2" max="40"
         />
         <button
-          onClick={this.props.controls.animate}
-          disabled={this.props.animating}
-        >Animate
-        </button>
-        <button
-          onClick={this.props.controls.restore}
-          disabled={this.props.animating}
-        >Restore</button>
-        <button
-          onClick={this.props.controls.rotate}
-          disabled={this.props.animating}
-        >Rotate</button>
+          onClick={this.props.controls.fullControls}
+        >Full Controls</button>
       </div>
     );
   }
 }
+
+UIComponent.propTypes = {
+  controls: PropTypes.shape({
+    reticulate: PropTypes.func.isRequired,
+    restore: PropTypes.func.isRequired,
+    rotate: PropTypes.func.isRequired,
+  }).isRequired
+};
 
 export default UIComponent;

@@ -1,6 +1,8 @@
 import React, { Component, PropTypes } from 'react';
 import _ from 'lodash';
 
+// import assert from '../utils/assert';
+
 import Point from '../Point';
 import Bezier from '../Bezier';
 import Camera from '../Camera';
@@ -23,7 +25,12 @@ class CanvasComponent extends Component {
        */
       canvas: null,
       buffer: document.createElement('canvas'),
-      camera: new Camera(new Point(), new Point()),
+      camera: new Camera(
+        new Point(0.5, 0.5, -2),
+        new Point()
+      ),
+      dragging: false,
+      startDrag: new Point(),
     };
   }
 
@@ -62,11 +69,17 @@ class CanvasComponent extends Component {
    * @returns {Point} pt - The Point projected to screen-space.
    */
   transform(pt) {
+
     const buffer = this.state.buffer;
 
-    pt.moveX(-0.5);
-    pt.moveY(-0.5);
-    pt.moveZ(1.5);
+    /* perspective projection requires camera at origin,
+     * facing down z-axis, so make that transform
+     */
+    const loc = this.state.camera.getLocation();
+    pt.moveX(-loc.x());
+    pt.moveY(-loc.y());
+    pt.moveZ(-loc.z());
+
     let f = pt => pt.x() / pt.z(),
         g = pt => pt.y() / pt.z();
 
@@ -167,13 +180,45 @@ class CanvasComponent extends Component {
     this.setState({ canvas }, this.draw);
   }
 
+  onMouseDown(e) {
+
+    let startDrag = this.state.startDrag;
+
+    startDrag.x(e.offsetX);
+    startDrag.y(e.offsetY);
+
+    this.setState({
+      dragging: true,
+      startDrag
+    });
+  }
+
+  onMouseMove(e) {
+    // if (this.state.dragging) {
+    //
+    //   const camera = this.state.camera;
+    //   const factor = 500;
+    //
+    //   let loc = this.state.camera.getLocation();
+    //   let startDrag = this.state.startDrag;
+    //   // loc.x(this.state / factor);
+    //   // loc.moveY((e.offsetY - startDrag.y()) / factor);
+    //   console.log(startDrag.x() - e.offsetX / factor);
+    //   this.draw.call(this);
+    // }
+  }
+
+  onMouseUp() {
+    this.setState({ dragging: false });
+  }
+
   download() {
-      let canvas = this.state.buffer;
-      let url = canvas.toDataURL(),
-          a = document.createElement('a');
-      a.href = url;
-      a.download = 'patch.png';
-      return a.click();
+    let canvas = this.state.buffer;
+    let url = canvas.toDataURL(),
+        a = document.createElement('a');
+    a.href = url;
+    a.download = 'patch.png';
+    return a.click();
   }
 
   /**
@@ -188,7 +233,11 @@ class CanvasComponent extends Component {
 
     window.addEventListener('keyup', e => {
       if (e.keyCode === 13) this.download.call(this);
-    })
+    });
+
+    this.refs.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+    this.refs.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+    this.refs.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
 
     this.update();
   }

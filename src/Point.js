@@ -6,6 +6,10 @@
  * @param {Number} z - z value of point. Defaults to 0.
  */
 function Point(x = 0, y = 0, z = 0) {
+  if (x instanceof Array) {
+    this.pt = x;
+    return;
+  }
   this.pt = [x, y, z];
 }
 
@@ -123,6 +127,10 @@ Point.prototype.rotateYZ = function rotateYZ(deg) {
   this.z(nz);
 
   return this;
+};
+
+Point.prototype.toArray = function toArray() {
+  return this.pt;
 };
 
 export default Point;

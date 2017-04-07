@@ -10,4 +10,8 @@ function Camera(location, direction) {
   this.direction = direction;
 }
 
+Camera.prototype.getLocation = function getLocation() {
+  return this.location;
+};
+
 export default Camera;

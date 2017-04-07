@@ -1,70 +1,85 @@
 import React from 'react';
+import Firebase from 'firebase';
 
-import Point from './Point';
-import Bezier from './Bezier';
+import FirebaseMiddleware from './utils/FirebaseMiddleware';
+let FirebaseHelper;
 
 import CanvasComponent from './components/CanvasComponent';
 import UIComponent from './components/UIComponent';
+import FullControls from './components/FullControls';
 
 import './App.css';
 
 class App extends React.Component {
+
   constructor() {
+
     super();
 
-    const a0 = new Point(0, 0, 0);
-    const a1 = new Point(0.333, 0, 0);
-    const a2 = new Point(0.667, 0, 0);
-    const a3 = new Point(1, 0, 0);
-
-    const b0 = new Point(0, 1, 0);
-    const b1 = new Point(0.333, 1, 0);
-    const b2 = new Point(0.667, 1, 0);
-    const b3 = new Point(1, 1, 0);
-
-    const c1 = new Point(0, 0.333, 0);
-    const c2 = new Point(0, 0.667, 0);
-
-    const d1 = new Point(1, 0.333, 0);
-    const d2 = new Point(1, 0.667, 0);
+    // Initialize Firebase
+    const config = {
+      apiKey: "AIzaSyA2UW59bbeDKE8oQrHGfhJdiezxKzQzaUA",
+      authDomain: "patch-e0bcb.firebaseapp.com",
+      databaseURL: "https://patch-e0bcb.firebaseio.com",
+      projectId: "patch-e0bcb",
+      storageBucket: "patch-e0bcb.appspot.com",
+      messagingSenderId: "480634117202"
+    };
+    Firebase.initializeApp(config);
 
     this.state = {
       d: 20,
       i: 0,
+      curves: {},
+      origCurves: {},
       activePt: 0,
-      pts: [a0, a1, a2, a3, d1, d2, b3, b2, b1, b0, c2, c1],
-      curves: {
-        u0: new Bezier(a0, c1, c2, b0),
-        u1: new Bezier(a3, d1, d2, b3),
-        v0: new Bezier(a0, a1, a2, a3),
-        v1: new Bezier(b0, b1, b2, b3),
-      },
       animating: false,
+      ready: false,
+      fullControls: false,
     };
+
+    this.isReady = this.isReady.bind(this);
 
     // bind functions for UI controls
     this.controls = {
-      animate: this.animate.bind(this),
       restore: this.restore.bind(this),
       reticulate: this.reticulate.bind(this),
       rotate: this.rotate.bind(this, 0),
+      fullControls: () => { this.setState({ fullControls: true }); },
+      setCurvePt: (curve, pt, coord, value) => {
+        FirebaseHelper.updatePointCoord(curve, pt, coord, value)
+      }
     };
   }
 
+  isReady(count) {
+    if (count === 4) return this.setState({ ready: true });
+  }
+
   componentDidMount() {
-    window.addEventListener('keyup', (e) => {
-      this.setState({ i: this.state.i + 1 });
 
-      const pts = this.state.pts;
+    let ref = Firebase.database().ref('001');
 
-      let activePt = this.state.activePt;
+    FirebaseHelper = FirebaseMiddleware(ref);
 
-      while (activePt < 0) activePt += pts.length;
+    let count = 0;
 
-      if (e.keyCode === 37) this.setState({ activePt: activePt - 1 });
-      if (e.keyCode === 38) pts[(activePt) % pts.length].moveZ(0.1);
-      if (e.keyCode === 39) this.setState({ activePt: activePt + 1 });
-      if (e.keyCode === 40) pts[(activePt) % pts.length].moveZ(-0.1);
+    ["u0", "u1", "v0", "v1"].forEach((which) => {
+
+      ref.child("/" + which).once('value', (snapshot) => {
+        count++;
+        let curves = this.state.curves;
+        let origCurves = this.state.origCurves;
+        curves[which] = FirebaseHelper.snapshotToBezier(snapshot);
+        origCurves[which] = FirebaseHelper.snapshotToBezier(snapshot);
+        this.setState({ curves, origCurves }, this.isReady.call(this, count));
+      });
+
+      ref.child("/" + which).on('value', (snapshot) => {
+        let curves = this.state.curves;
+        curves[which] = FirebaseHelper.snapshotToBezier(snapshot);
+        this.setState({ curves });
+      });
     });
   }
 
@@ -72,149 +87,26 @@ class App extends React.Component {
     this.setState({ d: +e.target.value });
   }
 
-  animate() {
-    this.setState({ animating: true }, () => {
-      const duration = 60;
-      const deform = r => (2 * r * Math.random()) - r;
-
-      // easing function for reference
-      // const ease = (t) => t < 0.5 ? 4*t*t*t : (t-1)*((2*t)-2)*((2*t)-2)+1;
-      // derivative of easing function
-      const dEase = (t) => t < 0.5 ? 12 * t * t : 12 * (t - 1) * (t - 1);
-      const xBound = 0.2;
-      const yBound = 0.2;
-      const zBound = 0.5;
-
-      this.state.pts.forEach(pt => {
-        // set original
-        if (pt.origX == null) pt.origX = pt.x();
-        if (pt.origY == null) pt.origY = pt.y();
-        if (pt.origZ == null) pt.origZ = pt.z();
-
-        pt.dx = deform(xBound);
-        pt.dy = deform(yBound);
-        pt.dz = deform(zBound);
-      });
-
-      const updatePts = (iter) => {
-        const pts = this.state.pts;
-
-        // parametrize time 0-1
-        const t = iter / duration;
-
-        pts.forEach((pt) => {
-          pt.moveX((dEase(t) * pt.dx) / duration);
-          pt.moveY((dEase(t) * pt.dy) / duration);
-          pt.moveZ((dEase(t) * pt.dz) / duration);
-        });
-
-        this.setState({ i: this.state.i + 1 });
-
-        // if not done, keep animating
-        if (iter < duration) {
-          return window.requestAnimationFrame(updatePts.bind(this, iter + 1));
-        }
-
-        // if done, clean up
-        this.state.pts.forEach(pt => {
-          delete pt.dx;
-          delete pt.dy;
-          delete pt.dz;
-        });
-
-        return this.setState({ animating: false });
-      };
-
-      updatePts(0);
+  restore() {
+    ["u0", "u1", "v0", "v1"].forEach((which) => {
+      let i = 0;
+      while (i < 4) {
+        // get original control point of curve
+        let pt = this.state.origCurves[which]["pt" + i]();
+        FirebaseHelper.updatePoint(which, i, pt);
+        i++;
+      }
     });
   }
 
-  restore() {
-    this.setState({ animating: true }, () => {
-      const duration = 60;
+  animate() {
 
-      // easing function for reference
-      // const ease = (t) => t < 0.5 ? 4*t*t*t : (t-1)*((2*t)-2)*((2*t)-2)+1;
-      // derivative of easing function
-      const dEase = (t) => t < 0.5 ? 12 * t * t : 12 * (t - 1) * (t - 1);
-
-      // assume we have already animated and set false if not
-      let hasAnimated = true;
-
-      this.state.pts.forEach((pt) => {
-        // check if we have animated
-        if (pt.origX == null || pt.origY == null || pt.origZ == null) {
-          hasAnimated = false;
-        } else {
-          pt.dx = pt.origX - pt.x();
-          pt.dy = pt.origY - pt.y();
-          pt.dz = pt.origZ - pt.z();
-        }
-      });
-
-      // if not, nothing to do!
-      if (!hasAnimated) return;
-
-      const updatePts = (iter) => {
-        const pts = this.state.pts;
-
-        // parametrize time 0-1
-        const t = iter / duration;
-
-        pts.forEach((pt) => {
-          pt.moveX((dEase(t) * pt.dx) / duration);
-          pt.moveY((dEase(t) * pt.dy) / duration);
-          pt.moveZ((dEase(t) * pt.dz) / duration);
-        });
-
-        this.setState({ i: this.state.i + 1 });
-
-        // if not done, keep animating
-        if (iter < duration) {
-          return window.requestAnimationFrame(updatePts.bind(this, iter + 1));
-        }
-
-        return this.setState({ animating: false });
-      };
-
-      updatePts(0);
-    });
   }
 
   rotate(i) {
-
-    this.state.pts.forEach(pt => {
-      // set original
-      if (pt.origX == null) pt.origX = pt.x();
-      if (pt.origY == null) pt.origY = pt.y();
-      if (pt.origZ == null) pt.origZ = pt.z();
-    });
-
-    this.setState({ animating: true }, () => {
-
-      const duration = 100;
-
-      const dEase = (t) => t < 0.5 ? 12 * t * t : 12 * (t - 1) * (t - 1);
-
-      const t = i / duration;
-
-      for (let j = 0; j < this.state.pts.length; j += 1) {
-        this.state.pts[j].moveX(-0.5)
-          .moveY(-0.5)
-          .rotateYZ(dEase(t) * 1)
-          .rotateXY(dEase(t) * 0.5)
-          .moveX(0.5)
-          .moveY(0.5);
-      }
-
-      this.setState({ i: this.state.i + 1 });
-
-      if (i < duration) {
-        return window.requestAnimationFrame(this.rotate.bind(this, i + 1));
-      }
-
-      return this.setState({ animating: false });
-    });
+    let pt = this.state.curves.u0.p1;
+    console.log(pt.toArray());
+    FirebaseHelper.updatePoint("u0", 1, pt);
   }
 
   render() {
@@ -229,20 +121,25 @@ class App extends React.Component {
 
     while (activePt < 0) activePt += pts.length;
 
-    return (
-      <div style={container}>
-        <CanvasComponent
+    return this.state.ready ? (
+      this.state.fullControls ?
+        <FullControls
           curves={this.state.curves}
-          d={this.state.d}
-          activePt={pts[activePt % pts.length]} animating={this.state.animating}
-        />
-        <UIComponent
           controls={this.controls}
-          d={this.state.d}
-          animating={this.state.animating}
-        />
-      </div>
-    );
+        /> :
+        <div style={container}>
+          <CanvasComponent
+            curves={this.state.curves}
+            d={this.state.d}
+            animating={this.state.animating}
+          />
+          <UIComponent
+            controls={this.controls}
+            d={this.state.d}
+            animating={this.state.animating}
+          />
+        </div>
+    ) : null;
   }
 }
 

@@ -14,4 +14,8 @@ Camera.prototype.getLocation = function getLocation() {
   return this.location;
 };
 
+Camera.prototype.lookAt = function lookAt() {
+  // TODO
+};
+
 export default Camera;

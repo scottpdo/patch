@@ -1,103 +1,114 @@
+// @flow
+
 import Point from './Point';
 
 /**
- * A curve defined by 2, 3, or 4 control points.
+ * A curve defined by 4 control points.
+ * Parameters can be 4 points or an Array of length 4
+ * containing 4 points.
  * @class
- * @param {Point} p0
- * @param {Point} p1
- * @param {Point} p2
- * @param {Point} p3
+ * @param {Point|Array} p0 - The starting Point or an Array containing
+ * the four Points.
+ * @param {Point|Null} p1 - The 1st control Point (or nothing if p0 was an
+ * Array).
+ * @param {Point|Null} p2 - The 2nd control Point (or nothing if p0 was an
+ * Array).
+ * @param {Point|Null} p3 - The end Point (or nothing if p0 was an Array).
  */
-function Bezier(p0, p1, p2, p3) {
+class Bezier {
 
-  if (p0 instanceof Array) {
-    p0.forEach((pt, i) => {
-      const num = "p" + i;
-      this[num] = pt;
-    });
-  } else {
-    this.p0 = p0;
-    this.p1 = p1;
-    this.p2 = p2;
-    this.p3 = p3;
+  p0: Point;
+  p1: Point;
+  p2: Point;
+  p3: Point;
+
+  constructor(p0: Point, p1: Point, p2: Point, p3: Point) {
+    if (p0 instanceof Array) {
+      p0.forEach((pt, i) => {
+        const num = "p" + i;
+        // $FlowIgnore
+        this[num] = pt;
+      });
+    } else {
+      this.p0 = p0;
+      this.p1 = p1;
+      this.p2 = p2;
+      this.p3 = p3;
+    }
+  }
+
+  /**
+   * Evaluate a curve at parameter t, 0-1.
+   * @param {Number} t - t between 0 and 1 (inclusive).
+   * @returns {Point} The point on the curve at parameter t.
+   */
+  evaluate(t: number): Point {
+    if (t < 0 || t > 1) throw new Error("Can't evaluate this curve.");
+
+    const it = 1 - t;
+    const p0 = this.p0; const p1 = this.p1;
+    const p2 = this.p2; const p3 = this.p3;
+
+    let pt = new Point();
+
+    pt = pt.add(p0.multiply(it * it * it))
+      .add(p1.multiply(3 * it * it * t))
+      .add(p2.multiply(3 * it * t * t))
+      .add(p3.multiply(t * t * t));
+
+    return pt;
+  }
+
+  derivate(t: number): Point {
+    if (t < 0 || t > 1) throw new Error("Can't evaluate this curve.");
+
+    const it = 1 - t;
+    const p0 = this.p0; const p1 = this.p1;
+    const p2 = this.p2; const p3 = this.p3;
+
+    let pt = new Point();
+
+    pt = pt.add(p1.subtract(p0).multiply(3 * it * it))
+      .add(p2.subtract(p1).multiply(6 * it * t))
+      .add(p3.subtract(p2).multiply(3 * t * t));
+
+    return pt;
+  }
+
+  /**
+   * Given a start parameter and end parameter, trim the existing curve
+   * and return a new curve (with end- and control points) parameterized
+   * from 0 to 1 at these points.
+   */
+  trim(start: number, end: number): Bezier {
+
+    if (arguments.length !== 2) {
+      throw new Error("Need a start and end to trim a curve.");
+    }
+
+    if (start < 0 || start > 1 || end < 0 || end > 1) {
+      throw new Error("Can't trim this curve.");
+    }
+
+    // Endpoints: just evaluate at given params
+    let p0 = this.evaluate(start);
+    let p3 = this.evaluate(end);
+
+    // Need to calculate derivatives at these new endpoints
+    let dp0 = this.derivate(start);
+    let dp3 = this.derivate(end);
+
+    // Calculate new control points from the given endpoints
+    // and derivatives
+    let p1 = p0.multiply(3).add(dp0).multiply(1 / 3);
+    let p2 = p3.multiply(3).subtract(dp3).multiply(1 / 3);
+
+    // Create a new curve and assign end- and control points
+    let b = new Bezier();
+    b.p0 = p0; b.p1 = p1; b.p2 = p2; b.p3 = p3;
+
+    return b;
   }
 }
-
-/**
- * Evaluate a curve at parameter t, 0-1.
- * @param {Number} t - t between 0 and 1 (inclusive).
- * @returns {Point} The point on the curve at parameter t.
- */
-Bezier.prototype.evaluate = function evaluate(t) {
-  if (t < 0 || t > 1) throw new Error("Can't evaluate this curve.");
-
-  const it = 1 - t;
-
-  let pt = new Point();
-
-  // if (this.type === 'cubic') {
-  pt = pt.add(this.p0.multiply(it * it * it))
-    .add(this.p1.multiply(3 * it * it * t))
-    .add(this.p2.multiply(3 * it * t * t))
-    .add(this.p3.multiply(t * t * t));
-  // } else if (this.type === 'linear') {
-  //   pt = pt.add(this.p0.multiply(it))
-  //     .add(this.p1.multiply(t));
-  // } else if (this.type === 'quadratic') {
-  //   pt = pt.add(this.p0.multiply(it * it))
-  //     .add(this.p1.multiply(2 * it * t))
-  //     .add(this.p2.multiply(t * t));
-  // }
-
-  return pt;
-};
-
-/**
- * Set or get the curve's 0th control point.
- * @param {Point|Null} pt
- * @returns {Bezier|Point} If no value given, returns the 0th control point.
- * Otherwise sets it and returns the Bezier object.
- */
-Bezier.prototype.pt0 = function pt0(pt) {
-  if (!pt) return this.p0;
-  this.p0 = pt;
-  return this;
-};
-
-/**
- * Set or get the curve's 1st control point.
- * @param {Point|Null} pt
- * @returns {Bezier|Point} If no value given, returns the 1st control point.
- * Otherwise sets it and returns the Bezier object.
- */
-Bezier.prototype.pt1 = function pt1(pt) {
-  if (!pt) return this.p1;
-  this.p1 = pt;
-  return this;
-};
-
-/**
- * Set or get the curve's 2nd control point.
- * @param {Point|Null} pt
- * @returns {Bezier|Point} If no value given, returns the 2nd control point.
- * Otherwise sets it and returns the Bezier object.
- */
-Bezier.prototype.pt2 = function pt2(pt) {
-  if (!pt) return this.p2;
-  this.p2 = pt;
-  return this;
-};
-
-/**
- * Set or get the curve's 3rd control point.
- * @param {Point|Null} pt
- * @returns {Bezier|Point} If no value given, returns the 3rd control point.
- * Otherwise sets it and returns the Bezier object.
- */
-Bezier.prototype.pt3 = function pt3(pt) {
-  if (!pt) return this.p3;
-  this.p3 = pt;
-  return this;
-};
 
 export default Bezier;

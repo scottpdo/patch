@@ -4,8 +4,8 @@ import Firebase from 'firebase';
 import FirebaseMiddleware from './utils/FirebaseMiddleware';
 let FirebaseHelper;
 
-import CanvasComponent from './components/CanvasComponent';
-import UIComponent from './components/UIComponent';
+import Canvas from './components/Canvas';
+import UI from './components/UI';
 import FullControls from './components/FullControls';
 
 import './App.css';
@@ -128,12 +128,12 @@ class App extends React.Component {
           controls={this.controls}
         /> :
         <div style={container}>
-          <CanvasComponent
+          <Canvas
             curves={this.state.curves}
             d={this.state.d}
             animating={this.state.animating}
           />
-          <UIComponent
+          <UI
             controls={this.controls}
             d={this.state.d}
             animating={this.state.animating}

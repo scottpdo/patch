@@ -1,8 +1,7 @@
 import React, { Component, PropTypes } from 'react';
 import _ from 'lodash';
 
-// import assert from '../utils/assert';
-
+import Surface from '../Surface';
 import Point from '../Point';
 import Bezier from '../Bezier';
 import Camera from '../Camera';
@@ -11,19 +10,26 @@ import Camera from '../Camera';
  * A React component that handles drawing.
  * @namespace
  */
-class CanvasComponent extends Component {
+class Canvas extends Component {
+
   constructor() {
+
     super();
     /**
-     * @memberof CanvasComponent
+     * @memberof Canvas
      * @type {Object}
      */
     this.state = {
       /**
        * HTMLCanvasElement that gets drawn to the screen.
-       * @memberof CanvasComponent.state
+       * @memberof Canvas.state
        */
       canvas: null,
+      /**
+       * HTMLCanvasElement, larger than `Canvas.state.canvas`, that is stored
+       * in memory and gets drawn to `Canvas.state.canvas`.
+       * @memberof Canvas.state
+       */
       buffer: document.createElement('canvas'),
       camera: new Camera(
         new Point(0.5, 0.5, -2),
@@ -32,6 +38,12 @@ class CanvasComponent extends Component {
       dragging: false,
       startDrag: new Point(),
     };
+
+    /**
+     * @memberof Canvas
+     * @type {Surface}
+     */
+    this.srf = null;
   }
 
   componentWillReceiveProps() {
@@ -39,34 +51,9 @@ class CanvasComponent extends Component {
   }
 
   /**
-   * Evaluate a point on the surface in u/v space, returning
-   * a Point world space.
-   * @param {Number} u The u parameter, between 0 and 1 (inclusive).
-   * @param {Number} v The v parameter, between 0 and 1 (inclusive).
-   * @returns {Point} The point on the surface.
-   */
-  patch(u, v) {
-    const u0 = this.props.curves.u0;
-    const u1 = this.props.curves.u1;
-    const v0 = this.props.curves.v0;
-    const v1 = this.props.curves.v1;
-
-    const Lu = u0.evaluate(u).multiply(1 - v).add(u1.evaluate(u).multiply(v));
-    const Lv = v0.evaluate(v).multiply(1 - u).add(v1.evaluate(v).multiply(u));
-    const B = u0.evaluate(0).multiply((1 - u) * (1 - v))
-            .add(u0.evaluate(1).multiply(u * (1 - v)))
-            .add(u1.evaluate(0).multiply((1 - u) * v))
-            .add(u1.evaluate(1).multiply(u * v));
-
-    const C = Lu.add(Lv).add(B.multiply(-1));
-
-    return C;
-  }
-
-  /**
-   * Given a Point in world space, project it onto the screen.
-   * @param {Point} pt The Point to project.
-   * @returns {Point} pt - The Point projected to screen-space.
+   * Given a `Point` in world space, project it onto the screen.
+   * @param {Point} pt The `Point` to project.
+   * @returns {Point} pt - The `Point` projected to screen-space.
    */
   transform(pt) {
 
@@ -118,7 +105,7 @@ class CanvasComponent extends Component {
       nv = 0;
 
       while (nv <= this.props.d) {
-        let pt = this.patch(nu * d, nv * d);
+        let pt = this.srf.patch(nu * d, nv * d);
         pts.push(pt);
 
         nv++;
@@ -128,7 +115,7 @@ class CanvasComponent extends Component {
     }
 
     // 2nd pass: draw
-    pts = pts.map(pt => this.transform(pt)).reverse();
+    pts = pts.map(pt => this.transform(pt));
 
     // quads
     for (let u = 0; u < nu - 1; u++) {
@@ -168,14 +155,16 @@ class CanvasComponent extends Component {
    */
   update() {
 
+    const bufferSize = 1.2;
+
     let canvas = this.refs.canvas;
     let buffer = this.state.buffer;
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    buffer.width = 1.2 * canvas.width;
-    buffer.height = 1.2 * canvas.height;
+    buffer.width = bufferSize * canvas.width;
+    buffer.height = bufferSize * canvas.height;
 
     this.setState({ canvas }, this.draw);
   }
@@ -222,9 +211,12 @@ class CanvasComponent extends Component {
   }
 
   /**
-   * Sets up canvas and adds global event listeners.
+   * Sets up surface, canvas and adds global event listeners.
    */
   componentDidMount() {
+
+    const curves = this.props.curves;
+    this.srf = new Surface(curves.u0, curves.u1, curves.v0, curves.v1);
 
     window.addEventListener(
       'resize',
@@ -247,13 +239,14 @@ class CanvasComponent extends Component {
   }
 }
 
-CanvasComponent.propTypes = {
+Canvas.propTypes = {
   curves: PropTypes.shape({
     u0: PropTypes.instanceOf(Bezier).isRequired,
     u1: PropTypes.instanceOf(Bezier).isRequired,
     v0: PropTypes.instanceOf(Bezier).isRequired,
     v1: PropTypes.instanceOf(Bezier).isRequired,
   }).isRequired,
+  d: PropTypes.number.isRequired,
 };
 
-export default CanvasComponent;
+export default Canvas;

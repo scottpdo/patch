@@ -2,7 +2,7 @@ import React, { Component, PropTypes } from 'react';
 
 import '../css/ui.css';
 
-class UIComponent extends Component {
+class UI extends Component {
   constructor() {
     super();
     this.state = {};
@@ -25,7 +25,7 @@ class UIComponent extends Component {
   }
 }
 
-UIComponent.propTypes = {
+UI.propTypes = {
   controls: PropTypes.shape({
     reticulate: PropTypes.func.isRequired,
     restore: PropTypes.func.isRequired,
@@ -33,4 +33,4 @@ UIComponent.propTypes = {
   }).isRequired
 };
 
-export default UIComponent;
+export default UI;

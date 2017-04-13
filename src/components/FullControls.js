@@ -53,7 +53,6 @@ class FullControls extends Component {
     let inputs = (curve, pt, alsoCurve, alsoPt) => {
 
       let input = (which) => {
-        // console.log(curve, pt, curves[curve]["pt" + pt]()[which]())
         return (
           <input
             onChange={this.update}
@@ -63,7 +62,7 @@ class FullControls extends Component {
             data-pt={pt}
             data-also-point={alsoPt}
             data-coord={which}
-            defaultValue={curves[curve]["pt" + pt]()[which]()} />
+            defaultValue={curves[curve]["p" + pt][which]()} />
         );
       };
 

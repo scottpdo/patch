@@ -2,7 +2,7 @@ import React, { Component, PropTypes } from 'react';
 
 import '../css/ui.css';
 
-class UIComponent extends Component {
+class UI extends Component {
   constructor() {
     super();
     this.state = {};
@@ -18,14 +18,23 @@ class UIComponent extends Component {
           defaultValue={this.props.d} min="2" max="40"
         />
         <button
+          onClick={this.props.controls.morph}
+        >Morph</button>
+        <button
+          onClick={this.props.controls.restore}
+        >Restore</button>
+        <button
+          onClick={this.props.controls.rotate}
+        >Rotate</button>
+        <button
           onClick={this.props.controls.fullControls}
-        >Full Controls</button>
+        >Pt. Controls</button>
       </div>
     );
   }
 }
 
-UIComponent.propTypes = {
+UI.propTypes = {
   controls: PropTypes.shape({
     reticulate: PropTypes.func.isRequired,
     restore: PropTypes.func.isRequired,
@@ -33,4 +42,4 @@ UIComponent.propTypes = {
   }).isRequired
 };
 
-export default UIComponent;
+export default UI;

@@ -5,9 +5,11 @@
   "dependencies": {
     "firebase": "^3.7.5",
     "react": "^15.4.2",
-    "react-dom": "^15.4.2"
+    "react-dom": "^15.4.2",
+    "url-parse": "^1.1.8"
   },
   "devDependencies": {
+    "flow-bin": "^0.43.1",
     "react-scripts": "0.9.5"
   },
   "scripts": {
@@ -15,6 +17,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
-    "docs": "documentation src/*.js src/components/*.js --shallow -f html -o docs"
+    "docs": "documentation src/*.js src/components/*.js --shallow -f html -o docs",
+    "flow": "flow"
   }
 }

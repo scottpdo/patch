@@ -1,10 +1,6 @@
-body {
-  background: #999;
-}
-
 .cell {
   float: left;
-  margin-bottom: 50px;
+  height: 25vh;
   width: 25%;
 }
 
@@ -12,4 +8,5 @@ body {
     display: block;
     font-size: 16px;
     margin-bottom: 3px;
+    width: 100%;
   }

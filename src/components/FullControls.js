@@ -32,8 +32,6 @@ class FullControls extends Component {
       const alsoCurve = input.getAttribute('data-also-curve');
       const alsoPt = parseFloat(input.getAttribute('data-also-point'));
 
-      console.log(alsoCurve, alsoPt);
-
       this.props.controls.setCurvePt(alsoCurve, alsoPt, coord, value);
     }
   }
@@ -48,12 +46,11 @@ class FullControls extends Component {
 
   render() {
 
-    const curves = this.props.curves;
+    const srf = this.props.srf;
 
     let inputs = (curve, pt, alsoCurve, alsoPt) => {
 
       let input = (which) => {
-        // console.log(curve, pt, curves[curve]["pt" + pt]()[which]())
         return (
           <input
             onChange={this.update}
@@ -63,7 +60,7 @@ class FullControls extends Component {
             data-pt={pt}
             data-also-point={alsoPt}
             data-coord={which}
-            defaultValue={curves[curve]["pt" + pt]()[which]()} />
+            defaultValue={srf[curve]["p" + pt][which]()} />
         );
       };
 

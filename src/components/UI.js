@@ -18,8 +18,17 @@ class UI extends Component {
           defaultValue={this.props.d} min="2" max="40"
         />
         <button
+          onClick={this.props.controls.morph}
+        >Morph</button>
+        <button
+          onClick={this.props.controls.restore}
+        >Restore</button>
+        <button
+          onClick={this.props.controls.rotate}
+        >Rotate</button>
+        <button
           onClick={this.props.controls.fullControls}
-        >Full Controls</button>
+        >Pt. Controls</button>
       </div>
     );
   }

@@ -161,6 +161,23 @@ class Point {
   toArray(): Array<number> {
     return this.pt;
   }
+
+  distance(pt: Point): number {
+    const dx = this.x() - pt.x();
+    const dy = this.y() - pt.y();
+    const dz = this.z() - pt.z();
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  /**
+   * In-place moving toward another Point.
+   */
+  moveToward(pt: Point, d: number): Point {
+    const dx = d * (pt.x() - this.x());
+    const dy = d * (pt.y() - this.y());
+    const dz = d * (pt.z() - this.z());
+    this.moveX(dx); this.moveY(dy); this.moveZ(dz);
+  }
 }
 
 export default Point;

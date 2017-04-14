@@ -3,6 +3,12 @@
 import Point from './Point';
 import Bezier from './Bezier';
 
+const p = (x, y, z) => new Point(x, y, z);
+const u0default = () => new Bezier(p(0, 0, 0), p(0.333, 0, 0), p(0.667, 0, 0), p(1, 0, 0));
+const u1default = () => new Bezier(p(0, 1, 0), p(0.333, 1, 0), p(0.667, 1, 0), p(1, 1, 0));
+const v0default = () => new Bezier(p(0, 0, 0), p(0, 0.333, 0), p(0, 0.667, 0), p(0, 1, 0));
+const v1default = () => new Bezier(p(1, 0, 0), p(1, 0.333, 0), p(1, 0.667, 0), p(1, 1, 0));
+
 /*
  * A patched surface from four boundary Bezier curves.
  */
@@ -12,8 +18,21 @@ class Surface {
   u1: Bezier;
   v0: Bezier;
   v1: Bezier;
+  u0_target: Bezier;
+  u1_target: Bezier;
+  v0_target: Bezier;
+  v1_target: Bezier;
 
-  constructor(u0: Bezier, u1: Bezier, v0: Bezier, v1: Bezier) {
+  constructor(
+    u0: Bezier = u0default(),
+    u1: Bezier = u1default(),
+    v0: Bezier = v0default(),
+    v1: Bezier = v1default()
+  ) {
+
+    /*
+     * Default Surface: square from 0-1, control points evenly spaced
+     */
 
     this.u0 = u0;
     this.u1 = u1;
@@ -94,6 +113,46 @@ class Surface {
       this.u0.p3 = this.u1.p0;
       this.u1.p3 = this.u1.p3;
     }
+  }
+
+  animateCurve(curve: string, newCurve: Bezier, opts = {}) {
+
+    this[curve].anim = true;
+
+    const EPS = 0.01;
+    const d = this[curve].distance(newCurve);
+
+    if (d > EPS) {
+
+      // animate
+      this[curve].moveToward(newCurve, 0.1);
+
+      return window.requestAnimationFrame(() => {
+        this.animateCurve(curve, newCurve, opts);
+        if (opts.progress) opts.progress();
+      });
+    }
+
+    if (opts.done) opts.done();
+  }
+
+  morph(opts): Surface {
+
+    let r = () => Math.random() - 0.5;
+    let rp = () => new Point(r(), r(), r());
+
+    let s = new Surface();
+
+    ["u0", "u1", "v0", "v1"].forEach((k) => {
+      let b = this[k]; // this boundary curve
+      let newCurve = new Bezier();
+      ["p0", "p1", "p2", "p3"].forEach((pt) => {
+        newCurve[pt] = b[pt].add(rp());
+      });
+      s[k] = newCurve;
+    });
+
+    return s;
   }
 }
 

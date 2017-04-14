@@ -1,8 +1,11 @@
 import React from 'react';
 import Firebase from 'firebase';
+import URL from 'url-parse';
 
 import FirebaseMiddleware from './utils/FirebaseMiddleware';
 let FirebaseHelper;
+
+import Surface from './Surface';
 
 import Canvas from './components/Canvas';
 import UI from './components/UI';
@@ -27,33 +30,40 @@ class App extends React.Component {
     };
     Firebase.initializeApp(config);
 
+    // set full controls based on URL parameter
+    const query = new URL(window.location.href, null, true).query;
+    let fullControls = (query && query.controls === "1");
+
     this.state = {
       d: 20,
       i: 0,
-      curves: {},
-      origCurves: {},
+      srf: null,
       activePt: 0,
-      animating: false,
       ready: false,
-      fullControls: false,
+      fullControls,
     };
 
-    this.isReady = this.isReady.bind(this);
+    this.iter = this.iter.bind(this);
 
     // bind functions for UI controls
     this.controls = {
+      morph: this.morph.bind(this),
       restore: this.restore.bind(this),
       reticulate: this.reticulate.bind(this),
       rotate: this.rotate.bind(this, 0),
-      fullControls: () => { this.setState({ fullControls: true }); },
+      fullControls: () => {
+        let href = window.location.origin + "/?controls=1";
+        window.open(href, "Pt. Controls",
+        "top=50,left=50,width=400,height=400");
+      },
       setCurvePt: (curve, pt, coord, value) => {
         FirebaseHelper.updatePointCoord(curve, pt, coord, value)
       }
     };
   }
 
-  isReady(count) {
-    if (count === 4) return this.setState({ ready: true });
+  iter() {
+    this.setState({ i: this.state.i + 1 });
   }
 
   componentDidMount() {
@@ -62,25 +72,52 @@ class App extends React.Component {
 
     FirebaseHelper = FirebaseMiddleware(ref);
 
-    let count = 0;
-
-    ["u0", "u1", "v0", "v1"].forEach((which) => {
-
-      ref.child("/" + which).once('value', (snapshot) => {
-        count++;
-        let curves = this.state.curves;
-        let origCurves = this.state.origCurves;
-        curves[which] = FirebaseHelper.snapshotToBezier(snapshot);
-        origCurves[which] = FirebaseHelper.snapshotToBezier(snapshot);
-        this.setState({ curves, origCurves }, this.isReady.call(this, count));
-      });
-
-      ref.child("/" + which).on('value', (snapshot) => {
-        let curves = this.state.curves;
-        curves[which] = FirebaseHelper.snapshotToBezier(snapshot);
-        this.setState({ curves });
+    ref.once('value', (snapshot) => {
+      // construct surface
+      const srf = FirebaseHelper.snapshotToSurface(snapshot);
+      this.setState({
+        srf,
+        ready: true,
       });
     });
+
+    ["u0", "u1", "v0", "v1"].forEach((which) => {
+      ref.child("/" + which).on('value', (snapshot) => {
+        if (!this.state.ready) return;
+        const curve = FirebaseHelper.snapshotToBezier(snapshot);
+        this.state.srf.animateCurve(which, curve, {
+          progress: this.iter,
+          done: this.iter,
+        });
+      });
+    });
+  }
+
+  rotate(i) {
+
+    const srf = this.state.srf;
+    const duration = 100;
+
+    const dEase = (t) => t < 0.5 ? 12 * t * t : 12 * (t - 1) * (t - 1);
+
+    const t = i / duration;
+
+    ["u0", "u1", "v0", "v1"].forEach((k) => {
+      ["p0", "p1", "p2", "p3"].forEach((pt) => {
+        srf[k][pt].moveX(-0.5)
+          .moveY(-0.5)
+          .rotateYZ(dEase(t) * 1)
+          .rotateXY(dEase(t) * 0.5)
+          .moveX(0.5)
+          .moveY(0.5);
+      });
+    });
+
+    this.setState({ i: this.state.i + 1 });
+
+    if (i < duration) {
+      return window.requestAnimationFrame(this.rotate.bind(this, i + 1));
+    }
   }
 
   reticulate(e) {
@@ -88,25 +125,12 @@ class App extends React.Component {
   }
 
   restore() {
-    ["u0", "u1", "v0", "v1"].forEach((which) => {
-      let i = 0;
-      while (i < 4) {
-        // get original control point of curve
-        let pt = this.state.origCurves[which]["pt" + i]();
-        FirebaseHelper.updatePoint(which, i, pt);
-        i++;
-      }
-    });
+    FirebaseHelper.updateSurface(new Surface());
   }
 
-  animate() {
-
-  }
-
-  rotate(i) {
-    let pt = this.state.curves.u0.p1;
-    console.log(pt.toArray());
-    FirebaseHelper.updatePoint("u0", 1, pt);
+  morph() {
+    let newSrf = this.state.srf.morph();
+    FirebaseHelper.updateSurface(newSrf);
   }
 
   render() {
@@ -124,19 +148,17 @@ class App extends React.Component {
     return this.state.ready ? (
       this.state.fullControls ?
         <FullControls
-          curves={this.state.curves}
+          srf={this.state.srf}
           controls={this.controls}
         /> :
         <div style={container}>
           <Canvas
-            curves={this.state.curves}
+            srf={this.state.srf}
             d={this.state.d}
-            animating={this.state.animating}
           />
           <UI
             controls={this.controls}
             d={this.state.d}
-            animating={this.state.animating}
           />
         </div>
     ) : null;

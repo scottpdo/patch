@@ -3,7 +3,6 @@ import _ from 'lodash';
 
 import Surface from '../Surface';
 import Point from '../Point';
-import Bezier from '../Bezier';
 import Camera from '../Camera';
 
 /**
@@ -38,12 +37,6 @@ class Canvas extends Component {
       dragging: false,
       startDrag: new Point(),
     };
-
-    /**
-     * @memberof Canvas
-     * @type {Surface}
-     */
-    this.srf = null;
   }
 
   componentWillReceiveProps() {
@@ -105,7 +98,7 @@ class Canvas extends Component {
       nv = 0;
 
       while (nv <= this.props.d) {
-        let pt = this.srf.patch(nu * d, nv * d);
+        let pt = this.props.srf.patch(nu * d, nv * d);
         pts.push(pt);
 
         nv++;
@@ -215,9 +208,6 @@ class Canvas extends Component {
    */
   componentDidMount() {
 
-    const curves = this.props.curves;
-    this.srf = new Surface(curves.u0, curves.u1, curves.v0, curves.v1);
-
     window.addEventListener(
       'resize',
       _.debounce(this.update.bind(this), 250),
@@ -240,12 +230,7 @@ class Canvas extends Component {
 }
 
 Canvas.propTypes = {
-  curves: PropTypes.shape({
-    u0: PropTypes.instanceOf(Bezier).isRequired,
-    u1: PropTypes.instanceOf(Bezier).isRequired,
-    v0: PropTypes.instanceOf(Bezier).isRequired,
-    v1: PropTypes.instanceOf(Bezier).isRequired,
-  }).isRequired,
+  srf: PropTypes.instanceOf(Surface).isRequired,
   d: PropTypes.number.isRequired,
 };
 

@@ -109,6 +109,23 @@ class Bezier {
 
     return b;
   }
+
+  distance(curve: Bezier): number {
+    let d = 0;
+    ["p0", "p1", "p2", "p3"].forEach((pt) => {
+      d += this[pt].distance(curve[pt]);
+    });
+    return d;
+  }
+
+  /*
+   *  In-place moving toward another Bezier.
+   */
+  moveToward(curve: Bezier, d: number): Bezier {
+    ["p0", "p1", "p2", "p3"].forEach((pt) => {
+      this[pt].moveToward(curve[pt], d);
+    });
+  }
 }
 
 export default Bezier;

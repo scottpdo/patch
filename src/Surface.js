@@ -67,6 +67,31 @@ class Surface {
     return C;
   }
 
+  // patchCurve(dir: string, t: number): Bezier {
+  //
+  //   let p0, p1, p2, p3;
+  //
+  //   if (dir === "u") {
+  //
+  //     p0 = this.v0.evaluate(t);
+  //     p3 = this.v1.evaluate(t);
+  //     p1 = this.patch(0.333, t);
+  //     p2 = this.patch(0.667, t);
+  //
+  //   } else if (dir === "v") {
+  //
+  //     p0 = this.u0.evaluate(t);
+  //     p3 = this.u1.evaluate(t);
+  //     p1 = this.patch(t, 0.333);
+  //     p2 = this.patch(t, 0.667);
+  //
+  //   } else {
+  //     throw new Error("Must patchCurve along either u or v axes!");
+  //   }
+  //
+  //   return new Bezier(p0, p1, p2, p3);
+  // }
+
   /**
    * Updates a point on a boundary curve, maintaining endpoint constraints
    * on neighboring curves.
@@ -136,6 +161,23 @@ class Surface {
     if (opts.done) opts.done();
   }
 
+  merge(pt1: Point, pt2: Point) {
+    const threshold = 0.01;
+    if (pt1.distance(pt2) > threshold) {
+      let mid = pt1.add(pt2).multiply(0.5);
+      pt1.set(mid);
+      pt2.set(mid);
+    }
+  }
+
+  // if endpoints do not match, take average
+  resolve() {
+    this.merge(this.u0.p0, this.v0.p0);
+    this.merge(this.u0.p3, this.v1.p0);
+    this.merge(this.u1.p0, this.v0.p3);
+    this.merge(this.u1.p3, this.v1.p3);
+  }
+
   morph(opts): Surface {
 
     let r = () => Math.random() - 0.5;
@@ -144,13 +186,23 @@ class Surface {
     let s = new Surface();
 
     ["u0", "u1", "v0", "v1"].forEach((k) => {
+
       let b = this[k]; // this boundary curve
+
       let newCurve = new Bezier();
+
       ["p0", "p1", "p2", "p3"].forEach((pt) => {
         newCurve[pt] = b[pt].add(rp());
+        if (k === "v0" && pt === "p0") newCurve[pt] = s.u0.p0;
+        if (k === "v0" && pt === "p3") newCurve[pt] = s.u1.p0;
+        if (k === "v1" && pt === "p0") newCurve[pt] = s.u0.p3;
+        if (k === "v1" && pt === "p3") newCurve[pt] = s.u1.p3;
       });
+
       s[k] = newCurve;
     });
+
+    // this.resolve();
 
     return s;
   }

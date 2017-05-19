@@ -178,6 +178,27 @@ class Point {
     const dz = d * (pt.z() - this.z());
     this.moveX(dx); this.moveY(dy); this.moveZ(dz);
   }
+
+  /*
+   * Linear interpolation toward another Point.
+   */
+  lerp(pt: Point, d: number): Point {
+    return new Point(
+      this.x() * (1 - d) + pt.x() * d,
+      this.y() * (1 - d) + pt.y() * d,
+      this.z() * (1 - d) + pt.z() * d,
+    );
+  }
+
+  set(pt: Point) {
+    this.x(pt.x());
+    this.y(pt.y());
+    this.z(pt.z());
+  }
+
+  clone() {
+    return new Point(this.x(), this.y(), this.z());
+  }
 }
 
 export default Point;

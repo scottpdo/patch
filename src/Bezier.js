@@ -43,7 +43,10 @@ class Bezier {
    * @returns {Point} The point on the curve at parameter t.
    */
   evaluate(t: number): Point {
-    if (t < 0 || t > 1) throw new Error("Can't evaluate this curve.");
+    if (t < 0 || t > 1) {
+      console.error("Curve parameter out of bounds: ", t);
+      throw new Error("Can't evaluate this curve.");
+    }
 
     const it = 1 - t;
     const p0 = this.p0; const p1 = this.p1;
@@ -125,6 +128,24 @@ class Bezier {
     ["p0", "p1", "p2", "p3"].forEach((pt) => {
       this[pt].moveToward(curve[pt], d);
     });
+  }
+
+  /*
+   *  Linearly interpolate between this and another curve.
+   */
+  lerp(curve: Bezier, d: number): Bezier {
+    return new Bezier(
+      this.p0.lerp(curve.p0, d),
+      this.p1.lerp(curve.p1, d),
+      this.p2.lerp(curve.p2, d),
+      this.p3.lerp(curve.p3, d),
+    );
+  }
+
+  getInfo() {
+    return {
+      endpoints: this.p0.toArray().join(', ') + " ... " + this.p3.toArray().join(', ')
+    };
   }
 }
 

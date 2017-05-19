@@ -139,6 +139,26 @@ class Point {
    * @param {Number} deg - Number of degrees by which to rotate.
    * @returns {Point} The original Point object with rotated position.
    */
+  rotateXZ(deg) {
+    const x = this.x();
+    const z = this.z();
+    const c = Math.cos((deg * Math.PI) / 180);
+    const s = Math.sin((deg * Math.PI) / 180);
+
+    const nx = (c * x) - (s * z);
+    const nz = (s * x) + (c * z);
+
+    this.x(nx);
+    this.z(nz);
+
+    return this;
+  }
+
+  /**
+   * In-place rotation of Point in y-z space (i.e. about x axis).
+   * @param {Number} deg - Number of degrees by which to rotate.
+   * @returns {Point} The original Point object with rotated position.
+   */
   rotateYZ(deg) {
     const y = this.y();
     const z = this.z();

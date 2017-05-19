@@ -41,6 +41,8 @@ class App extends React.Component {
       rotate: this.rotate.bind(this, 0),
       rotateXYPlus: this.rotateXY.bind(this, 1),
       rotateXYMinus: this.rotateXY.bind(this, -1),
+      rotateXZPlus: this.rotateXZ.bind(this, 1),
+      rotateXZMinus: this.rotateXZ.bind(this, -1),
       rotateYZPlus: this.rotateYZ.bind(this, 1),
       rotateYZMinus: this.rotateYZ.bind(this, -1),
       fullControls: () => {
@@ -67,6 +69,23 @@ class App extends React.Component {
         srf[k][pt].moveX(-0.5)
           .moveY(-0.5)
           .rotateXY(angle)
+          .moveX(0.5)
+          .moveY(0.5);
+      });
+    });
+
+    this.setState({ i: this.state.i + 1 });
+  }
+
+  rotateXZ(angle = 0) {
+
+    const srf = this.state.srf;
+
+    ["u0", "u1", "v0", "v1"].forEach((k) => {
+      ["p0", "p1", "p2", "p3"].forEach((pt) => {
+        srf[k][pt].moveX(-0.5)
+          .moveY(-0.5)
+          .rotateXZ(angle)
           .moveX(0.5)
           .moveY(0.5);
       });

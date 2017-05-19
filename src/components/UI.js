@@ -26,19 +26,19 @@ class UI extends Component {
 
       this.setState({ mouseIsDown: true });
 
-      if (e.target === this.refs.rotateXYPlus) {
-        this.trigger(this.props.controls.rotateXYPlus, end);
+      if (e.target === this.refs.right) {
+        this.trigger(this.props.controls.rotateXZPlus, end);
       }
 
-      if (e.target === this.refs.rotateXYMinus) {
-        this.trigger(this.props.controls.rotateXYMinus, end);
+      if (e.target === this.refs.left) {
+        this.trigger(this.props.controls.rotateXZMinus, end);
       }
 
-      if (e.target === this.refs.rotateYZPlus) {
+      if (e.target === this.refs.up) {
         this.trigger(this.props.controls.rotateYZPlus, end);
       }
 
-      if (e.target === this.refs.rotateYZMinus) {
+      if (e.target === this.refs.down) {
         this.trigger(this.props.controls.rotateYZMinus, end);
       }
     });
@@ -102,10 +102,10 @@ class UI extends Component {
         >Restore</button>
 
         <div style={keypad}>
-          <button ref="rotateYZPlus" style={keypad__up}>&uarr;</button>
-          <button ref="rotateYZMinus" style={keypad__down}>&darr;</button>
-          <button ref="rotateXYPlus" style={keypad__left}>&larr;</button>
-          <button ref="rotateXYMinus" style={keypad__right}>&rarr;</button>
+          <button ref="up" style={keypad__up}>&uarr;</button>
+          <button ref="down" style={keypad__down}>&darr;</button>
+          <button ref="left" style={keypad__left}>&larr;</button>
+          <button ref="right" style={keypad__right}>&rarr;</button>
         </div>
       </div>
     );
